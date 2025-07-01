@@ -121,6 +121,16 @@ inventory = {}
 
 clock = pygame.time.Clock()
 
+# --- BASES SYSTEM ---
+bases = {}  # planet_name: {level, revenue, last_collected}
+revenue = 0
+REVENUE_INTERVAL = 180  # frames (3 seconds at 60 FPS)
+BASE_BUILD_COST = 0  # Free to build for now
+BASE_UPGRADE_COST = 100
+BASE_REVENUE_BASE = 10
+BASE_REVENUE_MULT = 1.5
+SHIP_UPGRADE_COST = 200
+
 def draw_start_menu():
     screen.fill(BLACK)
     font_big = pygame.font.SysFont(None, 64)
@@ -189,9 +199,49 @@ def draw_game_menu(selected=None, show_controls=False):
     pygame.display.flip()
     return btn_rects
 
+def show_cutscene():
+    cutscene_duration = 5.5  # seconds
+    start_time = pygame.time.get_ticks()
+    font = pygame.font.SysFont(None, 38)
+    font_small = pygame.font.SysFont(None, 28)
+    lines = [
+        "You are Errin, a pioneer of the Galactic Expansion Fleet.",
+        "Your mission: travel to distant planets, colonize them,",
+        "and extract their resources for humanity's future.",
+        "Each world holds unique materials vital for Earth's survival",
+        "and the growth of the new colonies.",
+        "Explore, land, and exploit the riches of the solar system.",
+        "The fate of civilization rests on your success!"
+    ]
+    prompt = "Press SPACE or ENTER to continue..."
+    while True:
+        screen.fill((10, 10, 30))
+        panel = pygame.Surface((WIDTH-80, HEIGHT-120), pygame.SRCALPHA)
+        panel.fill((30, 30, 60, 230))
+        screen.blit(panel, (40, 60))
+        for i, line in enumerate(lines):
+            surf = font.render(line, True, (220, 220, 255))
+            screen.blit(surf, (WIDTH//2 - surf.get_width()//2, 120 + i*48))
+        prompt_surf = font_small.render(prompt, True, (255,255,180))
+        screen.blit(prompt_surf, (WIDTH//2 - prompt_surf.get_width()//2, HEIGHT-100))
+        pygame.display.flip()
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            if event.type == pygame.KEYDOWN:
+                if event.key in (pygame.K_SPACE, pygame.K_RETURN):
+                    return
+        if (pygame.time.get_ticks() - start_time) > cutscene_duration * 1000:
+            return
+
 # --- START MENU LOOP ---
 in_menu = True
+cutscene_shown = False
 while in_menu:
+    if not cutscene_shown:
+        show_cutscene()
+        cutscene_shown = True
     draw_start_menu()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -252,11 +302,15 @@ while running:
 
     planets = get_planet_positions()
 
-    # --- HANDLE INVENTORY SCROLL EVENTS ---
+    # --- EVENT HANDLING ---
+    mouse = pygame.mouse.get_pos()
+    click = False
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:
+                click = True
             if event.button == 4:  # Scroll up
                 inventory_scroll = clamp(inventory_scroll - 1, 0, max(0, len(inventory) - INVENTORY_VISIBLE_LINES))
             if event.button == 5:  # Scroll down
@@ -274,7 +328,6 @@ while running:
                 in_game_menu = True
                 selected_btn = None
                 show_controls = False
-
     # --- IN-GAME MENU HANDLING ---
     if in_game_menu:
         btn_rects = draw_game_menu(selected_btn, show_controls)
@@ -301,7 +354,6 @@ while running:
                     pygame.quit()
                     sys.exit()
         continue  # Skip rest of game loop when menu is open
-
     # --- CHARACTER CONTROLLER ---
     keys = pygame.key.get_pressed()
     move_x, move_y = 0, 0
@@ -379,6 +431,13 @@ while running:
             player_speed += 1
             inventory["Iron"] -= 2
 
+    # --- BASE REVENUE GENERATION ---
+    for pname, base in bases.items():
+        base['last_collected'] += 1
+        if base['last_collected'] >= REVENUE_INTERVAL:
+            revenue += int(BASE_REVENUE_BASE * (BASE_REVENUE_MULT ** (base['level']-1)))
+            base['last_collected'] = 0
+
     # Keep player in world bounds
     player_pos[0] = max(0, min(WORLD_WIDTH - player_size, player_pos[0]))
     player_pos[1] = max(0, min(WORLD_HEIGHT - player_size, player_pos[1]))
@@ -451,21 +510,14 @@ while running:
     rotated_img = pygame.transform.rotate(spaceship_img, player_angle)
     rect = rotated_img.get_rect(center=(player_pos[0] - cam_x + player_size // 2, player_pos[1] - cam_y + player_size // 2))
     screen.blit(rotated_img, rect.topleft)
-    # Draw a semi-transparent panel for story and quest info
-    panel_height = 120
-    panel = pygame.Surface((WIDTH, panel_height), pygame.SRCALPHA)
-    panel.fill((20, 20, 40, 200))
-    screen.blit(panel, (0, 0))
-    # Draw story (top of screen)
-    font = pygame.font.SysFont(None, 24)
-    for i, line in enumerate(story):
-        story_surf = font.render(line, True, (200, 220, 255))
-        screen.blit(story_surf, (30, 10 + i * 22))
-    # Draw quest info in a highlighted box at the bottom
-    quest_panel_height = 60
-    quest_panel = pygame.Surface((WIDTH, quest_panel_height), pygame.SRCALPHA)
-    quest_panel.fill((30, 30, 60, 220))
-    screen.blit(quest_panel, (0, HEIGHT - quest_panel_height))
+    # Draw a modern quest/objective panel at the bottom left
+    quest_panel_width = 420
+    quest_panel_height = 70
+    quest_panel_x = 20
+    quest_panel_y = HEIGHT - quest_panel_height - 20
+    quest_panel = pygame.Surface((quest_panel_width, quest_panel_height), pygame.SRCALPHA)
+    pygame.draw.rect(quest_panel, (30, 30, 60, 220), (0, 0, quest_panel_width, quest_panel_height), border_radius=18)
+    pygame.draw.rect(quest_panel, (80, 80, 120, 120), (0, 0, quest_panel_width, quest_panel_height), 3, border_radius=18)
     font = pygame.font.SysFont(None, 28)
     if current_quest < len(quests):
         quest = quests[current_quest]
@@ -473,7 +525,8 @@ while running:
     else:
         quest_text = "All missions complete! You have saved the Federation!"
     quest_surf = font.render(quest_text, True, (255, 255, 120))
-    screen.blit(quest_surf, (30, HEIGHT - quest_panel_height + 10))
+    quest_panel.blit(quest_surf, (22, 22))
+    screen.blit(quest_panel, (quest_panel_x, quest_panel_y))
     # Draw inventory in a scrollable rounded box at the top right
     inv_panel = pygame.Surface((INVENTORY_PANEL_WIDTH, INVENTORY_PANEL_HEIGHT), pygame.SRCALPHA)
     pygame.draw.rect(inv_panel, (40, 40, 60, 200), (0, 0, INVENTORY_PANEL_WIDTH, INVENTORY_PANEL_HEIGHT), border_radius=16)
@@ -499,6 +552,50 @@ while running:
         screen.blit(shadow, (WIDTH//2 - land_surf.get_width()//2 + 2, HEIGHT - 118))
         screen.blit(land_surf, (WIDTH//2 - land_surf.get_width()//2, HEIGHT - 120))
         landed_message_timer -= 1
+
+    # --- UI BUTTONS: BUILD BASE, UPGRADE BASE, UPGRADE SHIP ---
+    build_btn_rect = None
+    upgrade_base_btn_rect = None
+    upgrade_ship_btn_rect = None
+    base_on_planet = landed_planet and landed_planet['name'] in bases
+    if landed_planet:
+        btn_x, btn_y = 40, HEIGHT - 180
+        btn_w, btn_h = 180, 38
+        build_btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
+        pygame.draw.rect(screen, (60,180,60) if not base_on_planet else (120,120,120), build_btn_rect, border_radius=12)
+        font = pygame.font.SysFont(None, 28)
+        label = "Build Base" if not base_on_planet else "Base Built"
+        btn_surf = font.render(label, True, (255,255,255))
+        screen.blit(btn_surf, (btn_x + 18, btn_y + 6))
+        if base_on_planet:
+            upgrade_base_btn_rect = pygame.Rect(btn_x, btn_y+48, btn_w, btn_h)
+            pygame.draw.rect(screen, (60,60,180), upgrade_base_btn_rect, border_radius=12)
+            upg_surf = font.render(f"Upgrade Base ({BASE_UPGRADE_COST})", True, (255,255,255))
+            screen.blit(upg_surf, (btn_x + 8, btn_y+54))
+    upgrade_ship_btn_rect = pygame.Rect(WIDTH-240, HEIGHT-70, 200, 38)
+    pygame.draw.rect(screen, (180,120,60), upgrade_ship_btn_rect, border_radius=12)
+    font = pygame.font.SysFont(None, 28)
+    ship_surf = font.render(f"Upgrade Ship ({SHIP_UPGRADE_COST})", True, (255,255,255))
+    screen.blit(ship_surf, (WIDTH-230, HEIGHT-64))
+    font = pygame.font.SysFont(None, 28)
+    rev_surf = font.render(f"Revenue: {revenue}", True, (255,255,120))
+    screen.blit(rev_surf, (WIDTH-230, HEIGHT-110))
+    # --- BUTTON LOGIC ---
+    if click:
+        if landed_planet and build_btn_rect and build_btn_rect.collidepoint(mouse):
+            if not base_on_planet:
+                bases[landed_planet['name']] = {'level': 1, 'last_collected': 0}
+        if landed_planet and base_on_planet and upgrade_base_btn_rect and upgrade_base_btn_rect.collidepoint(mouse):
+            if revenue >= BASE_UPGRADE_COST:
+                bases[landed_planet['name']]['level'] += 1
+                revenue -= BASE_UPGRADE_COST
+        if upgrade_ship_btn_rect and upgrade_ship_btn_rect.collidepoint(mouse):
+            if revenue >= SHIP_UPGRADE_COST:
+                player_speed += 1
+                player_size += 2
+                spaceship_img = pygame.transform.scale(spaceship_img, (player_size, player_size))
+                revenue -= SHIP_UPGRADE_COST
+
     pygame.display.flip()
 
 pygame.quit()
