@@ -288,6 +288,13 @@ while running:
         map_width, map_height = 400, 400
         map_surf = pygame.Surface((map_width, map_height))
         map_surf.fill((20, 20, 40))
+        # Draw sun on map
+        sun_mx = int(sun_pos[0] / WORLD_WIDTH * map_width)
+        sun_my = int(sun_pos[1] / WORLD_HEIGHT * map_height)
+        pygame.draw.circle(map_surf, sun_color, (sun_mx, sun_my), 18)
+        font = pygame.font.SysFont(None, 20)
+        sun_surf = font.render("Sun", True, WHITE)
+        map_surf.blit(sun_surf, (sun_mx - 15, sun_my - 30))
         # Draw planets on map
         for planet in planets:
             px, py = planet["pos"]
