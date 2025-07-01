@@ -157,18 +157,21 @@ while in_menu:
 
 show_map = False  # Track if map is being shown
 
+# --- LANDING STATE ---
+landed_planet = None  # None if not landed, else the planet dict
+
 # Game loop
 running = True
 while running:
     clock.tick(60) #60FPS
 
-    # Update planet angles for orbit
+    # Update planet angles for orbit (slower)
     for p in planet_data:
-        p["angle"] += 0.01 * p["speed"]
+        p["angle"] += 0.002 * p["speed"]  # Slower orbit
         if p["angle"] > 2 * math.pi:
             p["angle"] -= 2 * math.pi
 
-    planets = get_planet_positions()  # <-- Ensure planets is defined at the start of each frame
+    planets = get_planet_positions()
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -176,35 +179,52 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_m:
                 show_map = not show_map
+            if event.key == pygame.K_SPACE and landed_planet is not None:
+                landed_planet = None  # Take off from planet
 
-    # --- CHARACTER CONTROLLER (same as before) ---
+    # --- CHARACTER CONTROLLER ---
     keys = pygame.key.get_pressed()
     move_x, move_y = 0, 0
-    if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-        player_angle += 5  # Rotate left
-    if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-        player_angle -= 5  # Rotate right
-    if keys[pygame.K_UP] or keys[pygame.K_w]:
-        rad = math.radians(player_angle)
-        move_x += -player_speed * math.sin(rad)
-        move_y += -player_speed * math.cos(rad)
-
-    # --- PLANET COLLISION (treat as walls/landing) ---
-    next_pos = [player_pos[0] + move_x, player_pos[1] + move_y]
-    landed = False
-    for planet in planets:
-        px, py = planet["pos"]
-        pr = planet["radius"]
-        dist = math.hypot(next_pos[0] - px, next_pos[1] - py)
-        if dist < pr + player_size // 2:
-            landed = True
-            angle_to_planet = math.atan2(next_pos[1] - py, next_pos[0] - px)
-            next_pos[0] = px + (pr + player_size // 2) * math.cos(angle_to_planet)
-            next_pos[1] = py + (pr + player_size // 2) * math.sin(angle_to_planet)
-    if not landed:
-        player_pos[0], player_pos[1] = next_pos[0], next_pos[1]
+    if landed_planet is None:
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]:
+            player_angle += 5  # Rotate left
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+            player_angle -= 5  # Rotate right
+        if keys[pygame.K_UP] or keys[pygame.K_w]:
+            rad = math.radians(player_angle)
+            move_x += -player_speed * math.sin(rad)
+            move_y += -player_speed * math.cos(rad)
+    # If landed, player moves with planet
+    if landed_planet is not None:
+        # Find the current planet's new position
+        for p in planets:
+            if p["name"] == landed_planet["name"]:
+                px, py = p["pos"]
+                pr = p["radius"]
+                # Keep player at the same angle and distance from planet center
+                angle = math.atan2(player_pos[1] - py, player_pos[0] - px)
+                player_pos[0] = px + (pr + player_size // 2) * math.cos(angle)
+                player_pos[1] = py + (pr + player_size // 2) * math.sin(angle)
+                break
     else:
-        player_pos[0], player_pos[1] = next_pos[0], next_pos[1]
+        # --- PLANET COLLISION (treat as walls/landing) ---
+        next_pos = [player_pos[0] + move_x, player_pos[1] + move_y]
+        landed = False
+        for planet in planets:
+            px, py = planet["pos"]
+            pr = planet["radius"]
+            dist = math.hypot(next_pos[0] - px, next_pos[1] - py)
+            if dist < pr + player_size // 2:
+                landed = True
+                landed_planet = planet  # Land on this planet
+                # Snap player to edge of planet
+                angle_to_planet = math.atan2(next_pos[1] - py, next_pos[0] - px)
+                next_pos[0] = px + (pr + player_size // 2) * math.cos(angle_to_planet)
+                next_pos[1] = py + (pr + player_size // 2) * math.sin(angle_to_planet)
+        if not landed:
+            player_pos[0], player_pos[1] = next_pos[0], next_pos[1]
+        else:
+            player_pos[0], player_pos[1] = next_pos[0], next_pos[1]
 
     # --- PLANET INTERACTION & QUEST SYSTEM ---
     if current_quest < len(quests):
@@ -318,6 +338,10 @@ while running:
     inv_text = "Inventory: " + ", ".join([f"{k}:{v}" for k, v in inventory.items()])
     inv_surf = font.render(inv_text, True, WHITE)
     screen.blit(inv_surf, (20, HEIGHT - 40))
+    if landed_planet is not None:
+        font = pygame.font.SysFont(None, 32)
+        land_surf = font.render(f"Landed on {landed_planet['name']} (Press SPACE to take off)", True, (255,255,0))
+        screen.blit(land_surf, (WIDTH//2 - land_surf.get_width()//2, HEIGHT - 120))
     pygame.display.flip()
 
 pygame.quit()
