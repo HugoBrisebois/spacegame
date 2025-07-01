@@ -92,7 +92,44 @@ quests = [
 ]
 current_quest = 0
 
+inventory = {}
+
 clock = pygame.time.Clock()
+
+def draw_start_menu():
+    screen.fill(BLACK)
+    font_big = pygame.font.SysFont(None, 64)
+    font_small = pygame.font.SysFont(None, 32)
+    title = font_big.render("Space Explorer", True, WHITE)
+    prompt = font_small.render("Press ENTER to Start", True, WHITE)
+    controls = [
+        "Controls:",
+        "Arrow keys / WASD - Move & Rotate",
+        "E - Collect material at planet",
+        "U - Upgrade (if available)",
+        "ESC - Quit"
+    ]
+    screen.blit(title, (WIDTH // 2 - title.get_width() // 2, HEIGHT // 2 - 120))
+    screen.blit(prompt, (WIDTH // 2 - prompt.get_width() // 2, HEIGHT // 2 - 40))
+    for i, line in enumerate(controls):
+        ctrl = font_small.render(line, True, WHITE)
+        screen.blit(ctrl, (WIDTH // 2 - ctrl.get_width() // 2, HEIGHT // 2 + 30 + i * 30))
+    pygame.display.flip()
+
+# --- START MENU LOOP ---
+in_menu = True
+while in_menu:
+    draw_start_menu()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.quit()
+            sys.exit()
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_RETURN:
+                in_menu = False
+            if event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
 
 # Game loop
 running = True
