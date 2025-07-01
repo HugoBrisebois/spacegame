@@ -22,7 +22,7 @@ WORLD_WIDTH, WORLD_HEIGHT = 3000, 3000  # Make the world much larger than the sc
 stars = [(random.randint(0, WORLD_WIDTH), random.randint(0, WORLD_HEIGHT)) for _ in range(300)]
 
 # Player settings
-player_size = 40
+player_size = 20  # Make ship smaller
 player_pos = [WORLD_WIDTH // 2, WORLD_HEIGHT // 2]  # Start in the middle of the world
 player_speed = 5
 player_angle = 0  # Angle in degrees
@@ -36,13 +36,37 @@ except pygame.error:
     pygame.quit()
     sys.exit()
 
-# --- PLANETS SETUP ---
-planets = [
-    {"name": "Mercury", "pos": (500, 800), "color": (200, 200, 200), "material": "Iron"},
-    {"name": "Venus",   "pos": (1200, 400), "color": (255, 200, 0),  "material": "Sulfur"},
-    {"name": "Earth",   "pos": (2000, 1500), "color": (0, 100, 255), "material": "Water"},
-    {"name": "Mars",    "pos": (2500, 2200), "color": (255, 80, 0),  "material": "Silicon"},
+# --- SUN & PLANETS ORBIT SETUP ---
+sun_pos = (WORLD_WIDTH // 2, WORLD_HEIGHT // 2)
+sun_radius = 150
+sun_color = (255, 255, 100)
+
+# Each planet has: name, orbit_radius, color, material, size, angle, speed
+planet_data = [
+    {"name": "Mercury", "orbit_radius": 350, "color": (200, 200, 200), "material": "Iron", "size": 40, "speed": 1.6},
+    {"name": "Venus",   "orbit_radius": 600, "color": (255, 200, 0),  "material": "Sulfur", "size": 60, "speed": 1.2},
+    {"name": "Earth",   "orbit_radius": 900, "color": (0, 100, 255), "material": "Water", "size": 70, "speed": 1.0},
+    {"name": "Mars",    "orbit_radius": 1200, "color": (255, 80, 0),  "material": "Silicon", "size": 55, "speed": 0.8},
 ]
+# Add initial angle to each planet
+for i, p in enumerate(planet_data):
+    p["angle"] = i * (math.pi / 2)
+
+# --- PLANETS SETUP ---
+def get_planet_positions():
+    planets = []
+    for p in planet_data:
+        angle = p["angle"]
+        px = sun_pos[0] + p["orbit_radius"] * math.cos(angle)
+        py = sun_pos[1] + p["orbit_radius"] * math.sin(angle)
+        planets.append({
+            "name": p["name"],
+            "pos": (px, py),
+            "color": p["color"],
+            "material": p["material"],
+            "radius": p["size"]
+        })
+    return planets
 
 # --- STORY & QUEST SYSTEM ---
 story = [
@@ -138,6 +162,14 @@ running = True
 while running:
     clock.tick(60) #60FPS
 
+    # Update planet angles for orbit
+    for p in planet_data:
+        p["angle"] += 0.01 * p["speed"]
+        if p["angle"] > 2 * math.pi:
+            p["angle"] -= 2 * math.pi
+
+    planets = get_planet_positions()  # <-- Ensure planets is defined at the start of each frame
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -162,13 +194,13 @@ while running:
     landed = False
     for planet in planets:
         px, py = planet["pos"]
+        pr = planet["radius"]
         dist = math.hypot(next_pos[0] - px, next_pos[1] - py)
-        if dist < 50 + player_size // 2:  # 50 is planet radius
+        if dist < pr + player_size // 2:
             landed = True
-            # Snap player to edge of planet
             angle_to_planet = math.atan2(next_pos[1] - py, next_pos[0] - px)
-            next_pos[0] = px + (50 + player_size // 2) * math.cos(angle_to_planet)
-            next_pos[1] = py + (50 + player_size // 2) * math.sin(angle_to_planet)
+            next_pos[0] = px + (pr + player_size // 2) * math.cos(angle_to_planet)
+            next_pos[1] = py + (pr + player_size // 2) * math.sin(angle_to_planet)
     if not landed:
         player_pos[0], player_pos[1] = next_pos[0], next_pos[1]
     else:
@@ -179,8 +211,9 @@ while running:
         quest = quests[current_quest]
         for planet in planets:
             px, py = planet["pos"]
+            pr = planet["radius"]
             dist = math.hypot(player_pos[0] - px, player_pos[1] - py)
-            if dist < 80:  # Near a planet
+            if dist < pr + 10:  # Near a planet (10 px buffer)
                 if keys[pygame.K_e]:  # Press E to collect
                     mat = planet["material"]
                     if planet["name"] == quest["planet"] and mat == quest["material"] and not quest["completed"]:
@@ -195,9 +228,8 @@ while running:
                                 player_size += quest["reward"]["size"]
                                 spaceship_img = pygame.transform.scale(spaceship_img, (player_size, player_size))
                             if "win" in quest["reward"]:
-                                # End game or show win message
                                 pass
-                            current_quest += 1  # Move to next quest
+                            current_quest += 1
 
     # --- UPGRADE EXAMPLE (optional, can be removed if using quest rewards) ---
     if keys[pygame.K_u]:  # Press U to upgrade speed if you have 2 Iron
@@ -251,13 +283,19 @@ while running:
     for sx, sy in stars:
         if cam_x <= sx <= cam_x + WIDTH and cam_y <= sy <= cam_y + HEIGHT:
             pygame.draw.circle(screen, WHITE, (sx - cam_x, sy - cam_y), 2)
+    # Draw sun
+    pygame.draw.circle(screen, sun_color, (sun_pos[0] - cam_x, sun_pos[1] - cam_y), sun_radius)
+    font = pygame.font.SysFont(None, 32)
+    sun_surf = font.render("Sun", True, (255, 255, 255))
+    screen.blit(sun_surf, (sun_pos[0] - cam_x - 30, sun_pos[1] - cam_y - sun_radius - 30))
     # Draw planets
     for planet in planets:
         px, py = planet["pos"]
-        pygame.draw.circle(screen, planet["color"], (px - cam_x, py - cam_y), 50)
+        pr = planet["radius"]
+        pygame.draw.circle(screen, planet["color"], (int(px - cam_x), int(py - cam_y)), pr)
         font = pygame.font.SysFont(None, 24)
         name_surf = font.render(planet["name"], True, WHITE)
-        screen.blit(name_surf, (px - cam_x - 30, py - cam_y - 60))
+        screen.blit(name_surf, (int(px - cam_x - 30), int(py - cam_y - pr - 30)))
     # Draw spaceship
     rotated_img = pygame.transform.rotate(spaceship_img, player_angle)
     rect = rotated_img.get_rect(center=(player_pos[0] - cam_x + player_size // 2, player_pos[1] - cam_y + player_size // 2))
