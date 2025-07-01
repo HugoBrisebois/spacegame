@@ -131,6 +131,8 @@ while in_menu:
                 pygame.quit()
                 sys.exit()
 
+show_map = False  # Track if map is being shown
+
 # Game loop
 running = True
 while running:
@@ -139,18 +141,38 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_m:
+                show_map = not show_map
 
     # --- CHARACTER CONTROLLER (same as before) ---
     keys = pygame.key.get_pressed()
+    move_x, move_y = 0, 0
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         player_angle += 5  # Rotate left
     if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
         player_angle -= 5  # Rotate right
     if keys[pygame.K_UP] or keys[pygame.K_w]:
-        # Move forward in the direction the ship is facing
         rad = math.radians(player_angle)
-        player_pos[0] += -player_speed * math.sin(rad)
-        player_pos[1] += -player_speed * math.cos(rad)
+        move_x += -player_speed * math.sin(rad)
+        move_y += -player_speed * math.cos(rad)
+
+    # --- PLANET COLLISION (treat as walls/landing) ---
+    next_pos = [player_pos[0] + move_x, player_pos[1] + move_y]
+    landed = False
+    for planet in planets:
+        px, py = planet["pos"]
+        dist = math.hypot(next_pos[0] - px, next_pos[1] - py)
+        if dist < 50 + player_size // 2:  # 50 is planet radius
+            landed = True
+            # Snap player to edge of planet
+            angle_to_planet = math.atan2(next_pos[1] - py, next_pos[0] - px)
+            next_pos[0] = px + (50 + player_size // 2) * math.cos(angle_to_planet)
+            next_pos[1] = py + (50 + player_size // 2) * math.sin(angle_to_planet)
+    if not landed:
+        player_pos[0], player_pos[1] = next_pos[0], next_pos[1]
+    else:
+        player_pos[0], player_pos[1] = next_pos[0], next_pos[1]
 
     # --- PLANET INTERACTION & QUEST SYSTEM ---
     if current_quest < len(quests):
@@ -188,13 +210,42 @@ while running:
     player_pos[1] = max(0, min(WORLD_HEIGHT - player_size, player_pos[1]))
 
     # --- CAMERA LOGIC ---
-    # Camera follows player, keeping them centered (unless at world edge)
     cam_x = int(player_pos[0] + player_size // 2 - WIDTH // 2)
     cam_y = int(player_pos[1] + player_size // 2 - HEIGHT // 2)
     cam_x = max(0, min(WORLD_WIDTH - WIDTH, cam_x))
     cam_y = max(0, min(WORLD_HEIGHT - HEIGHT, cam_y))
 
     # --- DRAWING ---
+    if show_map:
+        # Draw solar system map overlay
+        map_width, map_height = 400, 400
+        map_surf = pygame.Surface((map_width, map_height))
+        map_surf.fill((20, 20, 40))
+        # Draw planets on map
+        for planet in planets:
+            px, py = planet["pos"]
+            mx = int(px / WORLD_WIDTH * map_width)
+            my = int(py / WORLD_HEIGHT * map_height)
+            pygame.draw.circle(map_surf, planet["color"], (mx, my), 8)
+            font = pygame.font.SysFont(None, 18)
+            name_surf = font.render(planet["name"], True, WHITE)
+            map_surf.blit(name_surf, (mx - 10, my - 20))
+        # Draw player on map
+        mx = int(player_pos[0] / WORLD_WIDTH * map_width)
+        my = int(player_pos[1] / WORLD_HEIGHT * map_height)
+        pygame.draw.circle(map_surf, (0,255,0), (mx, my), 6)
+        # Blit map to screen center
+        screen.blit(map_surf, (WIDTH//2 - map_width//2, HEIGHT//2 - map_height//2))
+        # Draw map border
+        pygame.draw.rect(screen, WHITE, (WIDTH//2 - map_width//2, HEIGHT//2 - map_height//2, map_width, map_height), 2)
+        # Draw exit map prompt
+        font = pygame.font.SysFont(None, 28)
+        exit_surf = font.render("Press M to close map", True, WHITE)
+        screen.blit(exit_surf, (WIDTH//2 - exit_surf.get_width()//2, HEIGHT//2 + map_height//2 + 10))
+        pygame.display.flip()
+        continue  # Skip rest of drawing/game logic when map is open
+
+    # --- DRAWING --- (continued)
     screen.fill(BLACK)
     # Draw stars relative to camera
     for sx, sy in stars:
