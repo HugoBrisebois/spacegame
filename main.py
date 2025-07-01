@@ -16,14 +16,42 @@ BLACK = (0,0,0)
 WHITE = (255,255,255)
 
 # World/map settings
-WORLD_WIDTH, WORLD_HEIGHT = 3000, 3000  # Make the world much larger than the screen
+WORLD_WIDTH, WORLD_HEIGHT = 5200, 5200  # Expand world to fit all planets
 
 # Generate some stars for the background
 stars = [(random.randint(0, WORLD_WIDTH), random.randint(0, WORLD_HEIGHT)) for _ in range(300)]
 
+# --- SUN & PLANETS ORBIT SETUP ---
+sun_pos = (WORLD_WIDTH // 2, WORLD_HEIGHT // 2)
+sun_radius = 150
+sun_color = (255, 255, 100)
+
+# Each planet has: name, orbit_radius, color, material, size, angle, speed
+planet_data = [
+    {"name": "Mercury", "orbit_radius": 600, "color": (200, 200, 200), "material": "Iron", "size": 40, "speed": 1.6},
+    {"name": "Venus",   "orbit_radius": 1200, "color": (255, 200, 0),  "material": "Sulfur", "size": 60, "speed": 1.2},
+    {"name": "Earth",   "orbit_radius": 1800, "color": (0, 100, 255), "material": "Water", "size": 70, "speed": 1.0},
+    {"name": "Mars",    "orbit_radius": 2400, "color": (255, 80, 0),  "material": "Silicon", "size": 55, "speed": 0.8},
+]
+# Add initial angle to each planet
+for i, p in enumerate(planet_data):
+    p["angle"] = i * (math.pi / 2)
+
 # Player settings
+# Find Earth's initial position
+for p in planet_data:
+    if p["name"] == "Earth":
+        earth_angle = p["angle"]
+        earth_radius = p["orbit_radius"]
+        break
+else:
+    earth_angle = 0
+    earth_radius = 0
 player_size = 20  # Make ship smaller
-player_pos = [WORLD_WIDTH // 2, WORLD_HEIGHT // 2]  # Start in the middle of the world
+player_pos = [
+    int(sun_pos[0] + earth_radius * math.cos(earth_angle)),
+    int(sun_pos[1] + earth_radius * math.sin(earth_angle))
+]
 player_speed = 5
 player_angle = 0  # Angle in degrees
 
@@ -36,49 +64,17 @@ except pygame.error:
     pygame.quit()
     sys.exit()
 
-# --- SUN & PLANETS ORBIT SETUP ---
-sun_pos = (WORLD_WIDTH // 2, WORLD_HEIGHT // 2)
-sun_radius = 150
-sun_color = (255, 255, 100)
-
-# Each planet has: name, orbit_radius, color, material, size, angle, speed
-planet_data = [
-    {"name": "Mercury", "orbit_radius": 350, "color": (200, 200, 200), "material": "Iron", "size": 40, "speed": 1.6},
-    {"name": "Venus",   "orbit_radius": 600, "color": (255, 200, 0),  "material": "Sulfur", "size": 60, "speed": 1.2},
-    {"name": "Earth",   "orbit_radius": 900, "color": (0, 100, 255), "material": "Water", "size": 70, "speed": 1.0},
-    {"name": "Mars",    "orbit_radius": 1200, "color": (255, 80, 0),  "material": "Silicon", "size": 55, "speed": 0.8},
-]
-# Add initial angle to each planet
-for i, p in enumerate(planet_data):
-    p["angle"] = i * (math.pi / 2)
-
-# --- PLANETS SETUP ---
-def get_planet_positions():
-    planets = []
-    for p in planet_data:
-        angle = p["angle"]
-        px = sun_pos[0] + p["orbit_radius"] * math.cos(angle)
-        py = sun_pos[1] + p["orbit_radius"] * math.sin(angle)
-        planets.append({
-            "name": p["name"],
-            "pos": (px, py),
-            "color": p["color"],
-            "material": p["material"],
-            "radius": p["size"]
-        })
-    return planets
-
 # --- STORY & QUEST SYSTEM ---
 story = [
-    "You are the last explorer of the Solar Federation.",
-    "Your mission: gather rare materials to repair the Federation's beacon and call for help.",
-    "Travel to each planet, collect their unique resources, and upgrade your ship to reach distant worlds.",
-    "Good luck, captain!"
+    "You are Errin, a pioneer of the Galactic Expansion Fleet.",
+    "Your mission: travel to distant planets, colonize them, and extract their resources for humanity's future.",
+    "Each world holds unique materials vital for Earth's survival and the growth of the new colonies.",
+    "Explore, land, and exploit the riches of the solar system. The fate of civilization rests on your success!"
 ]
 
 quests = [
     {
-        "desc": "Collect 3 Iron from Mercury to repair your hull.",
+        "desc": "Colonize Mercury and extract 3 Iron for Earth's new outpost.",
         "planet": "Mercury",
         "material": "Iron",
         "amount": 3,
@@ -87,7 +83,7 @@ quests = [
         "reward": {"speed": 1}
     },
     {
-        "desc": "Collect 2 Sulfur from Venus to upgrade your thrusters.",
+        "desc": "Establish a mining base on Venus and collect 2 Sulfur for advanced fuel.",
         "planet": "Venus",
         "material": "Sulfur",
         "amount": 2,
@@ -96,7 +92,7 @@ quests = [
         "reward": {"speed": 1}
     },
     {
-        "desc": "Collect 2 Water from Earth to refill your life support.",
+        "desc": "Terraform Earth by gathering 2 Water for the new colony's life support.",
         "planet": "Earth",
         "material": "Water",
         "amount": 2,
@@ -105,7 +101,7 @@ quests = [
         "reward": {"size": 10}
     },
     {
-        "desc": "Collect 4 Silicon from Mars to repair the Federation beacon.",
+        "desc": "Exploit Mars for 4 Silicon to build the first Martian city.",
         "planet": "Mars",
         "material": "Silicon",
         "amount": 4,
@@ -159,6 +155,23 @@ show_map = False  # Track if map is being shown
 
 # --- LANDING STATE ---
 landed_planet = None  # None if not landed, else the planet dict
+landed_message_timer = 0  # Frames left to show landing message
+
+# --- PLANETS SETUP ---
+def get_planet_positions():
+    planets = []
+    for p in planet_data:
+        angle = p["angle"]
+        px = sun_pos[0] + p["orbit_radius"] * math.cos(angle)
+        py = sun_pos[1] + p["orbit_radius"] * math.sin(angle)
+        planets.append({
+            "name": p["name"],
+            "pos": (px, py),
+            "color": p["color"],
+            "material": p["material"],
+            "radius": p["size"]
+        })
+    return planets
 
 # Game loop
 running = True
@@ -205,6 +218,7 @@ while running:
                 angle = math.atan2(player_pos[1] - py, player_pos[0] - px)
                 player_pos[0] = px + (pr + player_size // 2) * math.cos(angle)
                 player_pos[1] = py + (pr + player_size // 2) * math.sin(angle)
+                landed_message_timer = 120  # Show message for 2 seconds (60 FPS)
                 break
     else:
         # --- PLANET COLLISION (treat as walls/landing) ---
@@ -221,6 +235,7 @@ while running:
                 angle_to_planet = math.atan2(next_pos[1] - py, next_pos[0] - px)
                 next_pos[0] = px + (pr + player_size // 2) * math.cos(angle_to_planet)
                 next_pos[1] = py + (pr + player_size // 2) * math.sin(angle_to_planet)
+                landed_message_timer = 120  # Reset timer when landing
         if not landed:
             player_pos[0], player_pos[1] = next_pos[0], next_pos[1]
         else:
@@ -338,10 +353,11 @@ while running:
     inv_text = "Inventory: " + ", ".join([f"{k}:{v}" for k, v in inventory.items()])
     inv_surf = font.render(inv_text, True, WHITE)
     screen.blit(inv_surf, (20, HEIGHT - 40))
-    if landed_planet is not None:
+    if landed_planet is not None and landed_message_timer > 0:
         font = pygame.font.SysFont(None, 32)
         land_surf = font.render(f"Landed on {landed_planet['name']} (Press SPACE to take off)", True, (255,255,0))
         screen.blit(land_surf, (WIDTH//2 - land_surf.get_width()//2, HEIGHT - 120))
+        landed_message_timer -= 1
     pygame.display.flip()
 
 pygame.quit()
