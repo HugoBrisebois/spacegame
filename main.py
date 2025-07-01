@@ -32,10 +32,15 @@ planet_data = [
     {"name": "Venus",   "orbit_radius": 1200, "color": (255, 200, 0),  "material": "Sulfur", "size": 60, "speed": 1.2},
     {"name": "Earth",   "orbit_radius": 1800, "color": (0, 100, 255), "material": "Water", "size": 70, "speed": 1.0},
     {"name": "Mars",    "orbit_radius": 2400, "color": (255, 80, 0),  "material": "Silicon", "size": 55, "speed": 0.8},
+    {"name": "Jupiter", "orbit_radius": 3000, "color": (210, 180, 140), "material": "Hydrogen", "size": 120, "speed": 0.5},
+    {"name": "Saturn",  "orbit_radius": 3600, "color": (230, 220, 170), "material": "Helium", "size": 110, "speed": 0.4},
+    {"name": "Uranus",  "orbit_radius": 4200, "color": (100, 255, 255), "material": "Methane", "size": 90, "speed": 0.3},
+    {"name": "Neptune", "orbit_radius": 4800, "color": (60, 80, 255),   "material": "Ammonia", "size": 85, "speed": 0.25},
+    {"name": "Pluto",   "orbit_radius": 5200, "color": (200, 200, 255), "material": "Ice", "size": 30, "speed": 0.18},
 ]
 # Add initial angle to each planet
 for i, p in enumerate(planet_data):
-    p["angle"] = i * (math.pi / 2)
+    p["angle"] = i * (math.pi / 4.5)
 
 # Player settings
 # Find Earth's initial position
@@ -337,32 +342,50 @@ while running:
         pygame.draw.circle(screen, planet["color"], (int(px - cam_x), int(py - cam_y)), pr)
         font = pygame.font.SysFont(None, 24)
         name_surf = font.render(planet["name"], True, WHITE)
+        # Add a subtle shadow for planet names
+        screen.blit(name_surf, (int(px - cam_x - 29), int(py - cam_y - pr - 29)))
         screen.blit(name_surf, (int(px - cam_x - 30), int(py - cam_y - pr - 30)))
     # Draw spaceship
     rotated_img = pygame.transform.rotate(spaceship_img, player_angle)
     rect = rotated_img.get_rect(center=(player_pos[0] - cam_x + player_size // 2, player_pos[1] - cam_y + player_size // 2))
     screen.blit(rotated_img, rect.topleft)
+    # Draw a semi-transparent panel for story and quest info
+    panel_height = 120
+    panel = pygame.Surface((WIDTH, panel_height), pygame.SRCALPHA)
+    panel.fill((20, 20, 40, 200))
+    screen.blit(panel, (0, 0))
     # Draw story (top of screen)
     font = pygame.font.SysFont(None, 24)
     for i, line in enumerate(story):
-        story_surf = font.render(line, True, WHITE)
-        screen.blit(story_surf, (20, 10 + i * 22))
-    # Draw quest info
+        story_surf = font.render(line, True, (200, 220, 255))
+        screen.blit(story_surf, (30, 10 + i * 22))
+    # Draw quest info in a highlighted box at the bottom
+    quest_panel_height = 60
+    quest_panel = pygame.Surface((WIDTH, quest_panel_height), pygame.SRCALPHA)
+    quest_panel.fill((30, 30, 60, 220))
+    screen.blit(quest_panel, (0, HEIGHT - quest_panel_height))
     font = pygame.font.SysFont(None, 28)
     if current_quest < len(quests):
         quest = quests[current_quest]
         quest_text = quest["desc"] + f" ({quest['collected']}/{quest['amount']})"
     else:
         quest_text = "All missions complete! You have saved the Federation!"
-    quest_surf = font.render(quest_text, True, WHITE)
-    screen.blit(quest_surf, (20, HEIGHT - 70))
-    # Draw inventory
+    quest_surf = font.render(quest_text, True, (255, 255, 120))
+    screen.blit(quest_surf, (30, HEIGHT - quest_panel_height + 10))
+    # Draw inventory in a rounded box at the top right
     inv_text = "Inventory: " + ", ".join([f"{k}:{v}" for k, v in inventory.items()])
-    inv_surf = font.render(inv_text, True, WHITE)
-    screen.blit(inv_surf, (20, HEIGHT - 40))
+    inv_panel = pygame.Surface((320, 38), pygame.SRCALPHA)
+    pygame.draw.rect(inv_panel, (40, 40, 60, 200), (0, 0, 320, 38), border_radius=16)
+    font = pygame.font.SysFont(None, 24)
+    inv_surf = font.render(inv_text, True, (180, 255, 180))
+    inv_panel.blit(inv_surf, (12, 8))
+    screen.blit(inv_panel, (WIDTH - 340, 10))
+    # Draw landing message with a drop shadow
     if landed_planet is not None and landed_message_timer > 0:
         font = pygame.font.SysFont(None, 32)
         land_surf = font.render(f"Landed on {landed_planet['name']} (Press SPACE to take off)", True, (255,255,0))
+        shadow = font.render(f"Landed on {landed_planet['name']} (Press SPACE to take off)", True, (60,60,0))
+        screen.blit(shadow, (WIDTH//2 - land_surf.get_width()//2 + 2, HEIGHT - 118))
         screen.blit(land_surf, (WIDTH//2 - land_surf.get_width()//2, HEIGHT - 120))
         landed_message_timer -= 1
     pygame.display.flip()
