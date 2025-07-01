@@ -141,6 +141,54 @@ def draw_start_menu():
         screen.blit(ctrl, (WIDTH // 2 - ctrl.get_width() // 2, HEIGHT // 2 + 30 + i * 30))
     pygame.display.flip()
 
+def draw_game_menu(selected=None, show_controls=False):
+    menu_width, menu_height = 400, 320
+    menu_x = WIDTH // 2 - menu_width // 2 - 100  # Shift left for controls panel
+    menu_y = HEIGHT // 2 - menu_height // 2
+    menu_panel = pygame.Surface((menu_width, menu_height), pygame.SRCALPHA)
+    menu_panel.fill((30, 30, 60, 240))
+    pygame.draw.rect(menu_panel, (80, 80, 120, 255), (0, 0, menu_width, menu_height), border_radius=18)
+    font = pygame.font.SysFont(None, 48)
+    title = font.render("Game Menu", True, (255,255,255))
+    menu_panel.blit(title, (menu_width//2 - title.get_width()//2, 30))
+    font_btn = pygame.font.SysFont(None, 36)
+    btns = ["Resume", "Controls", "Quit"]
+    btn_rects = []
+    for i, btn in enumerate(btns):
+        color = (255,255,120) if selected == i else (220,220,255)
+        btn_surf = font_btn.render(btn, True, color)
+        bx = menu_width//2 - btn_surf.get_width()//2
+        by = 100 + i*60
+        menu_panel.blit(btn_surf, (bx, by))
+        btn_rects.append(pygame.Rect(menu_x+bx, menu_y+by, btn_surf.get_width(), btn_surf.get_height()))
+    screen.blit(menu_panel, (menu_x, menu_y))
+    # Draw controls panel to the right if needed
+    if show_controls:
+        ctrl_width, ctrl_height = 340, 260
+        ctrl_x = menu_x + menu_width + 20
+        ctrl_y = menu_y + 20
+        ctrl_panel = pygame.Surface((ctrl_width, ctrl_height), pygame.SRCALPHA)
+        ctrl_panel.fill((20, 40, 30, 230))
+        pygame.draw.rect(ctrl_panel, (60, 120, 80, 255), (0, 0, ctrl_width, ctrl_height), border_radius=16)
+        font_ctrl = pygame.font.SysFont(None, 32)
+        ctrl_title = font_ctrl.render("Controls", True, (255,255,200))
+        ctrl_panel.blit(ctrl_title, (ctrl_width//2 - ctrl_title.get_width()//2, 18))
+        font_ctrl2 = pygame.font.SysFont(None, 24)
+        controls = [
+            "Arrow keys / WASD - Move & Rotate",
+            "E - Collect material at planet",
+            "U - Upgrade (if available)",
+            "M - Minimap",
+            "ESC - Menu/Quit",
+            "Mouse Wheel/Arrows - Scroll Inventory"
+        ]
+        for i, line in enumerate(controls):
+            ctrl_surf = font_ctrl2.render(line, True, (200,255,200))
+            ctrl_panel.blit(ctrl_surf, (24, 60 + i*32))
+        screen.blit(ctrl_panel, (ctrl_x, ctrl_y))
+    pygame.display.flip()
+    return btn_rects
+
 # --- START MENU LOOP ---
 in_menu = True
 while in_menu:
@@ -178,8 +226,21 @@ def get_planet_positions():
         })
     return planets
 
+# --- INVENTORY PANEL SCROLLING ---
+INVENTORY_PANEL_HEIGHT = 120
+INVENTORY_PANEL_WIDTH = 320
+INVENTORY_LINE_HEIGHT = 28
+INVENTORY_VISIBLE_LINES = INVENTORY_PANEL_HEIGHT // INVENTORY_LINE_HEIGHT
+inventory_scroll = 0
+
+def clamp(val, minval, maxval):
+    return max(minval, min(val, maxval))
+
 # Game loop
 running = True
+in_game_menu = False
+show_controls = False
+selected_btn = None
 while running:
     clock.tick(60) #60FPS
 
@@ -191,14 +252,55 @@ while running:
 
     planets = get_planet_positions()
 
+    # --- HANDLE INVENTORY SCROLL EVENTS ---
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 4:  # Scroll up
+                inventory_scroll = clamp(inventory_scroll - 1, 0, max(0, len(inventory) - INVENTORY_VISIBLE_LINES))
+            if event.button == 5:  # Scroll down
+                inventory_scroll = clamp(inventory_scroll + 1, 0, max(0, len(inventory) - INVENTORY_VISIBLE_LINES))
         if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_UP:
+                inventory_scroll = clamp(inventory_scroll - 1, 0, max(0, len(inventory) - INVENTORY_VISIBLE_LINES))
+            if event.key == pygame.K_DOWN:
+                inventory_scroll = clamp(inventory_scroll + 1, 0, max(0, len(inventory) - INVENTORY_VISIBLE_LINES))
             if event.key == pygame.K_m:
                 show_map = not show_map
             if event.key == pygame.K_SPACE and landed_planet is not None:
                 landed_planet = None  # Take off from planet
+            if event.key == pygame.K_ESCAPE:
+                in_game_menu = True
+                selected_btn = None
+                show_controls = False
+
+    # --- IN-GAME MENU HANDLING ---
+    if in_game_menu:
+        btn_rects = draw_game_menu(selected_btn, show_controls)
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    in_game_menu = False
+                    show_controls = False
+            if event.type == pygame.MOUSEMOTION:
+                mx, my = event.pos
+                selected_btn = None
+                for i, rect in enumerate(btn_rects):
+                    if rect.collidepoint(mx, my):
+                        selected_btn = i
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                if selected_btn == 0:  # Resume
+                    in_game_menu = False
+                    show_controls = False
+                elif selected_btn == 1:  # Controls
+                    show_controls = not show_controls
+                elif selected_btn == 2:  # Quit
+                    pygame.quit()
+                    sys.exit()
+        continue  # Skip rest of game loop when menu is open
 
     # --- CHARACTER CONTROLLER ---
     keys = pygame.key.get_pressed()
@@ -372,14 +474,23 @@ while running:
         quest_text = "All missions complete! You have saved the Federation!"
     quest_surf = font.render(quest_text, True, (255, 255, 120))
     screen.blit(quest_surf, (30, HEIGHT - quest_panel_height + 10))
-    # Draw inventory in a rounded box at the top right
-    inv_text = "Inventory: " + ", ".join([f"{k}:{v}" for k, v in inventory.items()])
-    inv_panel = pygame.Surface((320, 38), pygame.SRCALPHA)
-    pygame.draw.rect(inv_panel, (40, 40, 60, 200), (0, 0, 320, 38), border_radius=16)
+    # Draw inventory in a scrollable rounded box at the top right
+    inv_panel = pygame.Surface((INVENTORY_PANEL_WIDTH, INVENTORY_PANEL_HEIGHT), pygame.SRCALPHA)
+    pygame.draw.rect(inv_panel, (40, 40, 60, 200), (0, 0, INVENTORY_PANEL_WIDTH, INVENTORY_PANEL_HEIGHT), border_radius=16)
     font = pygame.font.SysFont(None, 24)
-    inv_surf = font.render(inv_text, True, (180, 255, 180))
-    inv_panel.blit(inv_surf, (12, 8))
-    screen.blit(inv_panel, (WIDTH - 340, 10))
+    inv_items = list(inventory.items())
+    visible_items = inv_items[inventory_scroll:inventory_scroll+INVENTORY_VISIBLE_LINES]
+    for i, (k, v) in enumerate(visible_items):
+        inv_surf = font.render(f"{k}: {v}", True, (180, 255, 180))
+        inv_panel.blit(inv_surf, (12, 8 + i * INVENTORY_LINE_HEIGHT))
+    # Draw scroll indicators if needed
+    if inventory_scroll > 0:
+        up_surf = font.render("▲", True, (255,255,255))
+        inv_panel.blit(up_surf, (INVENTORY_PANEL_WIDTH - 28, 4))
+    if inventory_scroll + INVENTORY_VISIBLE_LINES < len(inv_items):
+        down_surf = font.render("▼", True, (255,255,255))
+        inv_panel.blit(down_surf, (INVENTORY_PANEL_WIDTH - 28, INVENTORY_PANEL_HEIGHT - 28))
+    screen.blit(inv_panel, (WIDTH - INVENTORY_PANEL_WIDTH - 20, 10))
     # Draw landing message with a drop shadow
     if landed_planet is not None and landed_message_timer > 0:
         font = pygame.font.SysFont(None, 32)
