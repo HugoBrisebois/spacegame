@@ -198,6 +198,29 @@ def draw_base_buttons(screen, HEIGHT, landed_planet, base_on_planet):
         screen.blit(ship_txt, (upgrade_ship_btn_rect.x + 10, upgrade_ship_btn_rect.y + 8))
     return build_btn_rect, upgrade_base_btn_rect, upgrade_ship_btn_rect
 
+def draw_inventory(screen, inventory, WIDTH, HEIGHT):
+    # Draw a modal inventory window
+    modal_w, modal_h = 400, 300
+    modal_x = WIDTH // 2 - modal_w // 2
+    modal_y = HEIGHT // 2 - modal_h // 2
+    pygame.draw.rect(screen, (30, 30, 60), (modal_x, modal_y, modal_w, modal_h), border_radius=16)
+    pygame.draw.rect(screen, (200, 200, 255), (modal_x, modal_y, modal_w, modal_h), 4, border_radius=16)
+    font = pygame.font.SysFont(None, 40)
+    title = font.render("Inventory", True, (255,255,0))
+    screen.blit(title, (modal_x + modal_w//2 - title.get_width()//2, modal_y + 20))
+    font = pygame.font.SysFont(None, 28)
+    if not inventory:
+        empty = font.render("(Empty)", True, (220,220,220))
+        screen.blit(empty, (modal_x + modal_w//2 - empty.get_width()//2, modal_y + 90))
+    else:
+        for i, (item, count) in enumerate(inventory.items()):
+            line = f"{item}: {count}"
+            surf = font.render(line, True, (255,255,255))
+            screen.blit(surf, (modal_x + 40, modal_y + 80 + i*36))
+    font = pygame.font.SysFont(None, 24)
+    close = font.render("Press I or ESC to close", True, (200,200,200))
+    screen.blit(close, (modal_x + modal_w//2 - close.get_width()//2, modal_y + modal_h - 40))
+
 # Remove spaceship image loading from ui.py, move to assets.py for proper modularity
 
 # Add more UI helpers as needed

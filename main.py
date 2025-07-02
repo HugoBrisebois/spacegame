@@ -74,6 +74,7 @@ selected_btn = None
 show_controls = False
 show_map = False
 show_tech_tree = False  # Track if tech tree modal is open
+show_inventory = False  # Track if inventory modal is open
 # Player world position (centered on Earth at start)
 player_x, player_y = SUN_POS[0], SUN_POS[1] + 1800
 player_angle = 0
@@ -107,16 +108,26 @@ while running:
             if event.key == pygame.K_ESCAPE:
                 if show_tech_tree:
                     show_tech_tree = False
+                elif show_inventory:
+                    show_inventory = False
                 else:
                     game.menu_open = True
                     selected_btn = None
                     show_controls = False
             if event.key == pygame.K_m:
                 show_map = not show_map
+            if event.key == pygame.K_i:
+                show_inventory = not show_inventory
 
     # --- TECH TREE MODAL ---
     if show_tech_tree:
         ui.draw_tech_tree(screen, WIDTH, HEIGHT, game.player.tech_tree)
+        pygame.display.flip()
+        continue
+
+    # --- INVENTORY MODAL ---
+    if show_inventory:
+        ui.draw_inventory(screen, game.player.inventory, WIDTH, HEIGHT)
         pygame.display.flip()
         continue
 
