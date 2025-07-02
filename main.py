@@ -89,6 +89,22 @@ player_fuel_efficiency = 1.0
 landed_planet = None
 landed_angle = None  # Angle at which the ship landed
 
+# --- SYSTEM PROGRESSION STATE ---
+system_names = [
+    "Solar System",
+    "Alpha Centauri",
+    "Trappist-1"
+]
+system_quest_ranges = [
+    (0, 4),    # Solar System quests (0-3)
+    (4, 7),    # Alpha Centauri quests (4-6)
+    (7, 10)    # Trappist-1 quests (7-9)
+]
+current_system = 0
+in_hyperjump = False
+hyperjump_timer = 0
+HYPERJUMP_DURATION = 120  # frames (2 seconds at 60fps)
+
 while running:
     clock.tick(60)
     # Update planet orbits
@@ -231,6 +247,38 @@ while running:
         landed_planet = None  # Take off
         landed_angle = None
 
+    # --- HYPERJUMP ANIMATION ---
+    if in_hyperjump:
+        screen.fill((0,0,0))
+        font = pygame.font.SysFont(None, 64)
+        msg = font.render(f"Entering Hyperspeed to {system_names[current_system+1]}!", True, (120,220,255)) if current_system+1 < len(system_names) else font.render("You have completed all systems!", True, (120,255,120))
+        screen.blit(msg, (WIDTH//2 - msg.get_width()//2, HEIGHT//2 - 40))
+        # Draw streaks for effect
+        for _ in range(80):
+            x = random.randint(0, WIDTH)
+            y = random.randint(0, HEIGHT)
+            length = random.randint(40, 120)
+            pygame.draw.line(screen, (120,220,255), (x, y), (x, y+length), 2)
+        pygame.display.flip()
+        hyperjump_timer += 1
+        if hyperjump_timer > HYPERJUMP_DURATION:
+            in_hyperjump = False
+            hyperjump_timer = 0
+            # Move player to next system's starting planet
+            if current_system+1 < len(system_names):
+                current_system += 1
+                # Place player at first planet of next system
+                system_start = system_quest_ranges[current_system][0]
+                next_planet_name = game.quests[system_start]["planet"]
+                for p in planets:
+                    if p["name"] == next_planet_name:
+                        player_x, player_y = p["pos"]
+                        break
+                # Reset fuel/health if desired
+                player_fuel = player_max_fuel
+                player_health = player_max_health
+            continue
+
     # --- QUEST LOGIC ---
     if game.current_quest < len(game.quests):
         quest = game.quests[game.current_quest]
@@ -241,10 +289,39 @@ while running:
             if dist < pr + 10:
                 if keys[pygame.K_e]:
                     mat = planet["material"]
-                    # Allow collecting Silicon on Mars at any time
+                    # Allow collecting Silicon on Mars at any time, but only add once per press
                     if planet["name"] == "Mars" and mat == "Silicon":
-                        game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
-                    if planet["name"] == quest["planet"] and mat == quest["material"] and not quest["completed"]:
+                        if planet["name"] == quest["planet"] and mat == quest["material"] and not quest["completed"]:
+                            # If it's the quest, increment quest progress and inventory once
+                            game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
+                            quest["collected"] += 1
+                            if quest["collected"] >= quest["amount"]:
+                                quest["completed"] = True
+                                # Apply reward
+                                if "speed" in quest["reward"]:
+                                    player_speed += quest["reward"]["speed"]
+                                if "size" in quest["reward"]:
+                                    player_size += quest["reward"]["size"]
+                                if "fuel" in quest["reward"]:
+                                    player_fuel = min(player_max_fuel, player_fuel + quest["reward"]["fuel"])
+                                if "health" in quest["reward"]:
+                                    player_health = min(player_max_health, player_health + quest["reward"]["health"])
+                                if "fuel_efficiency" in quest["reward"]:
+                                    player_fuel_efficiency *= quest["reward"]["fuel_efficiency"]
+                                if "win" in quest["reward"]:
+                                    pass
+                                game.current_quest += 1
+                                # Check for system completion
+                                start, end = system_quest_ranges[current_system]
+                                if game.current_quest == end:
+                                    if current_system+1 < len(system_names):
+                                        in_hyperjump = True
+                                        hyperjump_timer = 0
+                                        break
+                        else:
+                            # Not the quest, just add to inventory
+                            game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
+                    elif planet["name"] == quest["planet"] and mat == quest["material"] and not quest["completed"]:
                         game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
                         quest["collected"] += 1
                         if quest["collected"] >= quest["amount"]:
@@ -254,10 +331,22 @@ while running:
                                 player_speed += quest["reward"]["speed"]
                             if "size" in quest["reward"]:
                                 player_size += quest["reward"]["size"]
+                            if "fuel" in quest["reward"]:
+                                player_fuel = min(player_max_fuel, player_fuel + quest["reward"]["fuel"])
+                            if "health" in quest["reward"]:
+                                player_health = min(player_max_health, player_health + quest["reward"]["health"])
+                            if "fuel_efficiency" in quest["reward"]:
+                                player_fuel_efficiency *= quest["reward"]["fuel_efficiency"]
                             if "win" in quest["reward"]:
                                 pass
                             game.current_quest += 1
-
+                            # Check for system completion
+                            start, end = system_quest_ranges[current_system]
+                            if game.current_quest == end:
+                                if current_system+1 < len(system_names):
+                                    in_hyperjump = True
+                                    hyperjump_timer = 0
+                                    break
     # --- IN-GAME MENU ---
     if game.menu_open:
         btn_rects = ui.draw_game_menu(screen, selected_btn, show_controls)
@@ -305,34 +394,45 @@ while running:
 
     # --- MAP VIEW ---
     if show_map:
-        map_width, map_height = 600, 600  # Expanded map view
+        map_width, map_height = 350, 350  # Reduced map view size
         map_surf = pygame.Surface((map_width, map_height))
         # Modern map background
         for y in range(map_height):
             c = int(20 + 30 * (y / map_height))
             pygame.draw.line(map_surf, (c, c, 48), (0, y), (map_width, y))
-        sun_mx = int(SUN_POS[0] / WORLD_WIDTH * map_width)
-        sun_my = int(SUN_POS[1] / WORLD_HEIGHT * map_height)
-        pygame.draw.circle(map_surf, SUN_COLOR, (sun_mx, sun_my), 28)
-        font = pygame.font.SysFont(None, 24)
+        # Center the sun in the map
+        sun_mx, sun_my = map_width // 2, map_height // 2
+        pygame.draw.circle(map_surf, SUN_COLOR, (sun_mx, sun_my), 14)
+        font = pygame.font.SysFont(None, 18)
         sun_surf = font.render("Sun", True, WHITE)
-        map_surf.blit(sun_surf, (sun_mx - 20, sun_my - 40))
-        for planet in planets:
-            px, py = planet["pos"]
-            mx = int(px / WORLD_WIDTH * map_width)
-            my = int(py / WORLD_HEIGHT * map_height)
-            pygame.draw.circle(map_surf, planet["color"], (mx, my), 14)
-            font = pygame.font.SysFont(None, 22)
+        map_surf.blit(sun_surf, (sun_mx - 10, sun_my - 24))
+        # Calculate scale for planet orbits
+        max_orbit = max(p["orbit_radius"] for p in PLANETS)
+        scale = (map_width // 2 - 24) / max_orbit
+        for planet in PLANETS:
+            angle = planet["angle"]
+            orbit = planet["orbit_radius"] * scale
+            mx = int(sun_mx + orbit * math.cos(angle))
+            my = int(sun_my + orbit * math.sin(angle))
+            pygame.draw.circle(map_surf, planet["color"], (mx, my), 7)
+            font = pygame.font.SysFont(None, 16)
             name_surf = font.render(planet["name"], True, WHITE)
-            map_surf.blit(name_surf, (mx - 18, my - 32))
-        mx = int(player_x / WORLD_WIDTH * map_width)
-        my = int(player_y / WORLD_HEIGHT * map_height)
-        pygame.draw.circle(map_surf, (0,255,0), (mx, my), 10)
+            map_surf.blit(name_surf, (mx - 10, my - 18))
+        # Player position on map (projected from world to map orbit)
+        # Find player's polar coordinates relative to sun
+        dx = player_x - SUN_POS[0]
+        dy = player_y - SUN_POS[1]
+        player_dist = math.hypot(dx, dy)
+        player_angle = math.atan2(dy, dx)
+        player_map_dist = player_dist * scale
+        pmx = int(sun_mx + player_map_dist * math.cos(player_angle))
+        pmy = int(sun_my + player_map_dist * math.sin(player_angle))
+        pygame.draw.circle(map_surf, (0,255,0), (pmx, pmy), 5)
         screen.blit(map_surf, (WIDTH//2 - map_width//2, HEIGHT//2 - map_height//2))
-        pygame.draw.rect(screen, WHITE, (WIDTH//2 - map_width//2, HEIGHT//2 - map_height//2, map_width, map_height), 3)
-        font = pygame.font.SysFont(None, 32)
+        pygame.draw.rect(screen, WHITE, (WIDTH//2 - map_width//2, HEIGHT//2 - map_height//2, map_width, map_height), 2)
+        font = pygame.font.SysFont(None, 22)
         exit_surf = font.render("Press M to close map", True, WHITE)
-        screen.blit(exit_surf, (WIDTH//2 - exit_surf.get_width()//2, HEIGHT//2 + map_height//2 + 16))
+        screen.blit(exit_surf, (WIDTH//2 - exit_surf.get_width()//2, HEIGHT//2 + map_height//2 + 8))
         pygame.display.flip()
         continue
 

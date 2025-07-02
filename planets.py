@@ -7,6 +7,7 @@ from assets import SUN_POS
 
 # Each planet has: name, orbit_radius, color, material, size, angle, speed
 PLANETS = [
+    # Solar System 1
     {"name": "Mercury", "orbit_radius": 600, "color": (200, 200, 200), "material": "Iron", "size": 40, "speed": 1.6, "angle": 0},
     {"name": "Venus",   "orbit_radius": 1200, "color": (255, 200, 0),  "material": "Sulfur", "size": 60, "speed": 1.2, "angle": math.pi/4.5},
     {"name": "Earth",   "orbit_radius": 1800, "color": (0, 100, 255), "material": "Water", "size": 70, "speed": 1.0, "angle": 2*math.pi/4.5},
@@ -16,6 +17,14 @@ PLANETS = [
     {"name": "Uranus",  "orbit_radius": 4200, "color": (100, 255, 255), "material": "Methane", "size": 90, "speed": 0.3, "angle": 6*math.pi/4.5},
     {"name": "Neptune", "orbit_radius": 4800, "color": (60, 80, 255),   "material": "Ammonia", "size": 85, "speed": 0.25, "angle": 7*math.pi/4.5},
     {"name": "Pluto",   "orbit_radius": 5200, "color": (200, 200, 255), "material": "Ice", "size": 30, "speed": 0.18, "angle": 8*math.pi/4.5},
+    # Alpha Centauri system
+    {"name": "Centauri Prime", "orbit_radius": 7000, "color": (180, 255, 255), "material": "Xenon", "size": 60, "speed": 0.13, "angle": 0.5},
+    {"name": "Centauri Secundus", "orbit_radius": 7600, "color": (255, 120, 255), "material": "Crystal", "size": 55, "speed": 0.11, "angle": 1.2},
+    {"name": "Centauri Tertius", "orbit_radius": 8200, "color": (255, 255, 120), "material": "Helium-3", "size": 100, "speed": 0.09, "angle": 2.1},
+    # Trappist-1 system
+    {"name": "Trappist-1e", "orbit_radius": 9000, "color": (120, 255, 120), "material": "Organics", "size": 50, "speed": 0.07, "angle": 2.8},
+    {"name": "Trappist-1g", "orbit_radius": 9600, "color": (120, 180, 255), "material": "Ice", "size": 45, "speed": 0.06, "angle": 3.5},
+    {"name": "Trappist-1h", "orbit_radius": 10200, "color": (255, 200, 120), "material": "Rare Metals", "size": 40, "speed": 0.05, "angle": 4.2},
 ]
 
 

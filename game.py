@@ -27,6 +27,7 @@ class Player:
 
 # Quest system
 QUESTS = [
+    # Solar System 1
     {
         "desc": "Colonize Mercury and extract 3 Iron for Earth's new outpost.",
         "planet": "Mercury",
@@ -62,6 +63,62 @@ QUESTS = [
         "collected": 0,
         "completed": False,
         "reward": {"win": True}
+    },
+    # Alpha Centauri system
+    {
+        "desc": "Travel to Centauri Prime and collect 5 Xenon for advanced propulsion.",
+        "planet": "Centauri Prime",
+        "material": "Xenon",
+        "amount": 5,
+        "collected": 0,
+        "completed": False,
+        "reward": {"fuel": 30}
+    },
+    {
+        "desc": "Harvest 3 Crystal from Centauri Secundus for quantum computers.",
+        "planet": "Centauri Secundus",
+        "material": "Crystal",
+        "amount": 3,
+        "collected": 0,
+        "completed": False,
+        "reward": {"size": 10}
+    },
+    {
+        "desc": "Collect 4 Helium-3 from the gas giant Centauri Tertius.",
+        "planet": "Centauri Tertius",
+        "material": "Helium-3",
+        "amount": 4,
+        "collected": 0,
+        "completed": False,
+        "reward": {"fuel_efficiency": 0.8}
+    },
+    # Trappist-1 system
+    {
+        "desc": "Land on Trappist-1e and gather 6 Organics for terraforming.",
+        "planet": "Trappist-1e",
+        "material": "Organics",
+        "amount": 6,
+        "collected": 0,
+        "completed": False,
+        "reward": {"health": 30}
+    },
+    {
+        "desc": "Mine 5 Ice from Trappist-1g for water reserves.",
+        "planet": "Trappist-1g",
+        "material": "Ice",
+        "amount": 5,
+        "collected": 0,
+        "completed": False,
+        "reward": {"fuel": 40}
+    },
+    {
+        "desc": "Establish a base on Trappist-1h and collect 3 Rare Metals.",
+        "planet": "Trappist-1h",
+        "material": "Rare Metals",
+        "amount": 3,
+        "collected": 0,
+        "completed": False,
+        "reward": {"win": True}
     }
 ]
 
@@ -83,17 +140,21 @@ class GameState:
         }
         self.base_on_planet = None
         self.story = [
+            # Solar System 1
             "You are Errin, a pioneer of the Galactic Expansion Fleet.",
             "Your mission: travel to distant planets, colonize them, and extract their resources for humanity's future.",
-            "Each world holds unique materials vital for Earth's survival and the growth of the new colonies.",
-            "The solar system is vast and full of mysteries: from the burning iron of Mercury, to the icy reaches of Pluto, every planet offers new challenges and opportunities.",
-            "Venus's toxic clouds hide rare elements, Earth's blue oceans are a cradle for life, and Mars's red deserts are rich in silicon for advanced technology.",
-            "Jupiter and Saturn, with their swirling storms, are sources of powerful gases, while Uranus and Neptune hold secrets beneath their frozen atmospheres.",
-            "Pluto, though distant and cold, contains ancient ices that may unlock the future of space travel.",
-            "Build bases, upgrade your ship, and complete quests to ensure the survival and prosperity of humanity among the stars.",
-            "The fate of civilization rests on your success!"
+            "Each world in your home solar system holds unique materials vital for Earth's survival and the growth of the new colonies.",
+            "From the burning iron of Mercury to the icy reaches of Pluto, every planet offers new challenges and opportunities.",
+            # Solar System 2
+            "With Earth's future secured, your journey continues to Alpha Centauri, a system of three suns and a host of new worlds.",
+            "Here, you must adapt to alien atmospheres, harvest exotic elements, and build outposts on planets never before seen by human eyes.",
+            "The twin planets of Centauri Prime and Secundus are rich in rare crystals and volatile gases, while the outer ice giants hide secrets beneath their frozen crusts.",
+            # Solar System 3
+            "Your final destination is the mysterious Trappist-1 system, a compact family of seven rocky worlds orbiting a cool red star.",
+            "Survive the harsh conditions, unlock advanced technology, and establish the first interstellar civilization among the stars.",
+            "The fate of humanity now stretches across three solar systems. Your courage and ingenuity will determine the future of all!"
         ]
-        self.inventory = {}
+        self.inventory = {}  # Unlimited storage: no artificial limit
         self.inventory_scroll = 0
         self.landed_planet = None
         self.landed_message_timer = 0

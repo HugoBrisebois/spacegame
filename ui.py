@@ -251,7 +251,8 @@ def draw_inventory(screen, inventory, WIDTH, HEIGHT, scroll_offset=0):
     screen.blit(title, (modal_x + modal_w//2 - title.get_width()//2, modal_y + 22))
     # Items
     font = pygame.font.SysFont("Segoe UI", 30)
-    items = list(inventory.items())
+    # --- Ensure all possible materials are shown if collected at least once ---
+    items = [(item, count) for item, count in inventory.items() if count > 0]
     items_per_page = 7
     start = scroll_offset
     end = min(start + items_per_page, len(items))

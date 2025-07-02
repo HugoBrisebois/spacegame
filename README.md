@@ -40,6 +40,7 @@ Install dependencies:
 
 ```sh
 pip install pygame
+
 ````markdown
 ```
 ```
