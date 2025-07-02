@@ -60,47 +60,52 @@ def draw_game_menu(screen, selected=None, show_controls=False):
         screen.blit(ctrl_panel, (ctrl_x, ctrl_y))
 
 def draw_quest_bar(screen, current_quest, quests, WIDTH):
-    bar_width, bar_height = WIDTH - 80, 48
-    bar_x, bar_y = 40, 12
-    bar_surf = pygame.Surface((bar_width, bar_height), pygame.SRCALPHA)
-    shadow = pygame.Surface((bar_width+8, bar_height+8), pygame.SRCALPHA)
-    shadow.fill((0,0,0,80))
-    screen.blit(shadow, (bar_x-4, bar_y-4))
-    bar_surf.fill((40, 60, 120, 210))
-    pygame.draw.rect(bar_surf, (80, 120, 200, 255), (0, 0, bar_width, bar_height), border_radius=16)
-    font = get_font(30)
+    # Modern quest bar at top with rounded corners and subtle shadow
+    bar_h = 54
+    bar_rect = pygame.Rect(18, 10, WIDTH-36, bar_h)
+    shadow = pygame.Surface((bar_rect.width+8, bar_rect.height+8), pygame.SRCALPHA)
+    pygame.draw.rect(shadow, (0,0,0,80), shadow.get_rect(), border_radius=16)
+    screen.blit(shadow, (bar_rect.x-4, bar_rect.y-4))
+    pygame.draw.rect(screen, (38,44,68), bar_rect, border_radius=16)
+    pygame.draw.rect(screen, (120,180,255), bar_rect, 3, border_radius=16)
+    font = pygame.font.SysFont("Segoe UI", 28, bold=True)
     if current_quest < len(quests):
         quest = quests[current_quest]
-        quest_text = quest['desc']
-        progress = f"({quest['collected']}/{quest['amount']})" if not quest['completed'] else "(Completed)"
-        text = f"Objective: {quest_text}  {progress}"
+        text = f"Quest: Collect {quest['amount']} {quest['material']} from {quest['planet']} ({quest['collected']}/{quest['amount']})"
+        surf = font.render(text, True, (255,255,255))
+        screen.blit(surf, (bar_rect.x+24, bar_rect.y+12))
     else:
-        text = "All quests complete! You have secured the future of humanity."
-    text_surf = font.render(text, True, (255,255,255))
-    bar_surf.blit(text_surf, (24, bar_height//2 - text_surf.get_height()//2))
-    screen.blit(bar_surf, (bar_x, bar_y))
+        surf = font.render("All quests complete!", True, (180,255,180))
+        screen.blit(surf, (bar_rect.x+24, bar_rect.y+12))
 
-def draw_health_fuel_bars(screen, player_health, player_max_health, player_fuel, player_max_fuel):
-    bar_x, bar_y = 28, 68
-    bar_width, bar_height = 220, 22
-    spacing = 14
-    font = get_font(22)
-    health_ratio = player_health / player_max_health if player_max_health else 0
-    health_bg = pygame.Surface((bar_width, bar_height), pygame.SRCALPHA)
-    health_bg.fill((0,0,0,120))
-    pygame.draw.rect(health_bg, (200,40,40,255), (0,0,int(bar_width*health_ratio),bar_height), border_radius=10)
-    pygame.draw.rect(health_bg, (255,80,80,255), (0,0,int(bar_width*health_ratio),bar_height), 2, border_radius=10)
-    screen.blit(health_bg, (bar_x, bar_y))
-    health_text = font.render(f"Health: {int(player_health)}/{player_max_health}", True, (255,255,255))
-    screen.blit(health_text, (bar_x+8, bar_y+2))
-    fuel_ratio = player_fuel / player_max_fuel if player_max_fuel else 0
-    fuel_bg = pygame.Surface((bar_width, bar_height), pygame.SRCALPHA)
-    fuel_bg.fill((0,0,0,120))
-    pygame.draw.rect(fuel_bg, (40,120,200,255), (0,0,int(bar_width*fuel_ratio),bar_height), border_radius=10)
-    pygame.draw.rect(fuel_bg, (80,180,255,255), (0,0,int(bar_width*fuel_ratio),bar_height), 2, border_radius=10)
-    screen.blit(fuel_bg, (bar_x, bar_y+bar_height+spacing))
-    fuel_text = font.render(f"Fuel: {int(player_fuel)}/{player_max_fuel}", True, (255,255,255))
-    screen.blit(fuel_text, (bar_x+8, bar_y+bar_height+spacing+2))
+def draw_health_fuel_bars(screen, health, max_health, fuel, max_fuel):
+    # Modern health/fuel bars at top right with icons and gradients
+    bar_w, bar_h = 180, 20
+    x, y = screen.get_width() - bar_w - 38, 18
+    # Health
+    bg_rect = pygame.Rect(x, y, bar_w, bar_h)
+    pygame.draw.rect(screen, (60,80,120), bg_rect, border_radius=10)
+    grad = pygame.Surface((int(bar_w*health/max_health), bar_h))
+    for i in range(bar_h):
+        c = (120,255-2*i,120)
+        pygame.draw.line(grad, c, (0,i), (grad.get_width(),i))
+    screen.blit(grad, (x, y))
+    pygame.draw.rect(screen, (120,255,120), (x, y, int(bar_w*health/max_health), bar_h), 2, border_radius=10)
+    font = pygame.font.SysFont("Segoe UI", 20)
+    htxt = font.render(f"HP", True, (0,0,0))
+    screen.blit(htxt, (x-32, y+1))
+    # Fuel
+    y += bar_h + 12
+    bg_rect = pygame.Rect(x, y, bar_w, bar_h)
+    pygame.draw.rect(screen, (60,80,120), bg_rect, border_radius=10)
+    grad = pygame.Surface((int(bar_w*fuel/max_fuel), bar_h))
+    for i in range(bar_h):
+        c = (120,180,255-2*i)
+        pygame.draw.line(grad, c, (0,i), (grad.get_width(),i))
+    screen.blit(grad, (x, y))
+    pygame.draw.rect(screen, (120,180,255), (x, y, int(bar_w*fuel/max_fuel), bar_h), 2, border_radius=10)
+    ftxt = font.render(f"Fuel", True, (0,0,0))
+    screen.blit(ftxt, (x-48, y+1))
 
 def draw_menu(screen, menu_open):
     if menu_open:
@@ -111,24 +116,55 @@ def draw_menu(screen, menu_open):
         # Add more menu items as needed
 
 def draw_tech_tree_button(screen, WIDTH):
-    tech_btn_rect = pygame.Rect(WIDTH-160, 18, 130, 38)
+    tech_btn_rect = pygame.Rect(WIDTH-170, 18, 140, 40)
+    shadow = pygame.Surface((tech_btn_rect.width+6, tech_btn_rect.height+6), pygame.SRCALPHA)
+    pygame.draw.rect(shadow, (0,0,0,80), shadow.get_rect(), border_radius=12)
+    screen.blit(shadow, (tech_btn_rect.x-3, tech_btn_rect.y-3))
     pygame.draw.rect(screen, (60,120,200), tech_btn_rect, border_radius=12)
+    pygame.draw.rect(screen, (120,180,255), tech_btn_rect, 2, border_radius=12)
     font = get_font(26)
     tech_surf = font.render("Tech Tree", True, (255,255,255))
-    screen.blit(tech_surf, (WIDTH-150, 26))
+    screen.blit(tech_surf, (tech_btn_rect.x + tech_btn_rect.width//2 - tech_surf.get_width()//2, tech_btn_rect.y + tech_btn_rect.height//2 - tech_surf.get_height()//2))
     return tech_btn_rect
 
-def draw_tech_tree(screen, WIDTH, HEIGHT):
-    panel_width, panel_height = 520, 420
+def draw_tech_tree(screen, WIDTH, HEIGHT, tech_tree_state, upgrades, unlock_callback=None):
+    # Draw a modern tech tree modal at the bottom of the screen with ship upgrades
+    panel_width, panel_height = 600, 220
     panel_x = WIDTH // 2 - panel_width // 2
-    panel_y = HEIGHT // 2 - panel_height // 2
+    panel_y = HEIGHT - panel_height - 32
     panel = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
     panel.fill((30, 30, 60, 240))
     pygame.draw.rect(panel, (80, 120, 200, 255), (0, 0, panel_width, panel_height), border_radius=18)
-    font = get_font(40)
+    font = get_font(36)
     title = font.render("Tech Tree", True, (255,255,255))
-    panel.blit(title, (panel_width//2 - title.get_width()//2, 24))
+    panel.blit(title, (panel_width//2 - title.get_width()//2, 18))
+    # Draw upgrades as buttons
+    font_btn = get_font(26)
+    btn_w, btn_h = 150, 54
+    btn_gap = 24
+    btns = []
+    for i, (upg, data) in enumerate(upgrades.items()):
+        bx = 32 + i * (btn_w + btn_gap)
+        by = 80
+        btn_rect = pygame.Rect(bx, by, btn_w, btn_h)
+        # Button color based on unlocked
+        unlocked = data['level'] > 0
+        color = (120, 220, 120) if unlocked else (120, 180, 255)
+        pygame.draw.rect(panel, color, btn_rect, border_radius=12)
+        # Upgrade name and level
+        upg_txt = font_btn.render(f"{upg} (Lv{data['level']})", True, (30,30,30))
+        panel.blit(upg_txt, (bx + 12, by + 6))
+        # Description
+        desc_font = get_font(18)
+        desc = desc_font.render(data['desc'], True, (40,40,40))
+        panel.blit(desc, (bx + 12, by + 32))
+        btns.append((btn_rect.move(panel_x, panel_y), upg))
+    # Footer
+    font_footer = get_font(20)
+    close = font_footer.render("Press ESC to close | Click upgrade to unlock", True, (180,200,220))
+    panel.blit(close, (panel_width//2 - close.get_width()//2, panel_height - 38))
     screen.blit(panel, (panel_x, panel_y))
+    return btns
 
 def draw_buttons(screen, buttons):
     font = get_font(22)
@@ -198,28 +234,75 @@ def draw_base_buttons(screen, HEIGHT, landed_planet, base_on_planet):
         screen.blit(ship_txt, (upgrade_ship_btn_rect.x + 10, upgrade_ship_btn_rect.y + 8))
     return build_btn_rect, upgrade_base_btn_rect, upgrade_ship_btn_rect
 
-def draw_inventory(screen, inventory, WIDTH, HEIGHT):
-    # Draw a modal inventory window
-    modal_w, modal_h = 400, 300
+def draw_inventory(screen, inventory, WIDTH, HEIGHT, scroll_offset=0):
+    # Draw a modern modal inventory window with scroll support and polish
+    modal_w, modal_h = 480, 400
     modal_x = WIDTH // 2 - modal_w // 2
     modal_y = HEIGHT // 2 - modal_h // 2
-    pygame.draw.rect(screen, (30, 30, 60), (modal_x, modal_y, modal_w, modal_h), border_radius=16)
-    pygame.draw.rect(screen, (200, 200, 255), (modal_x, modal_y, modal_w, modal_h), 4, border_radius=16)
-    font = pygame.font.SysFont(None, 40)
-    title = font.render("Inventory", True, (255,255,0))
-    screen.blit(title, (modal_x + modal_w//2 - title.get_width()//2, modal_y + 20))
-    font = pygame.font.SysFont(None, 28)
-    if not inventory:
-        empty = font.render("(Empty)", True, (220,220,220))
-        screen.blit(empty, (modal_x + modal_w//2 - empty.get_width()//2, modal_y + 90))
+    # Shadow
+    shadow_rect = pygame.Rect(modal_x+8, modal_y+10, modal_w, modal_h)
+    pygame.draw.rect(screen, (0,0,0,120), shadow_rect, border_radius=22)
+    # Main panel
+    pygame.draw.rect(screen, (38, 44, 68), (modal_x, modal_y, modal_w, modal_h), border_radius=22)
+    pygame.draw.rect(screen, (120, 180, 255), (modal_x, modal_y, modal_w, modal_h), 5, border_radius=22)
+    # Title
+    font = pygame.font.SysFont("Segoe UI", 48, bold=True)
+    title = font.render("Inventory", True, (255,255,255))
+    screen.blit(title, (modal_x + modal_w//2 - title.get_width()//2, modal_y + 22))
+    # Items
+    font = pygame.font.SysFont("Segoe UI", 30)
+    items = list(inventory.items())
+    items_per_page = 7
+    start = scroll_offset
+    end = min(start + items_per_page, len(items))
+    if not items:
+        empty = font.render("(Empty)", True, (180,200,220))
+        screen.blit(empty, (modal_x + modal_w//2 - empty.get_width()//2, modal_y + 110))
     else:
-        for i, (item, count) in enumerate(inventory.items()):
+        for i, (item, count) in enumerate(items[start:end]):
             line = f"{item}: {count}"
-            surf = font.render(line, True, (255,255,255))
-            screen.blit(surf, (modal_x + 40, modal_y + 80 + i*36))
-    font = pygame.font.SysFont(None, 24)
-    close = font.render("Press I or ESC to close", True, (200,200,200))
-    screen.blit(close, (modal_x + modal_w//2 - close.get_width()//2, modal_y + modal_h - 40))
+            pygame.draw.rect(screen, (60, 80, 120), (modal_x+36, modal_y+90+i*44, modal_w-72, 38), border_radius=12)
+            surf = font.render(line, True, (220, 240, 255))
+            screen.blit(surf, (modal_x + 52, modal_y + 96 + i*44))
+    # Footer
+    font = pygame.font.SysFont("Segoe UI", 22)
+    close = font.render("Press I or ESC to close | Scroll: Up/Down", True, (180,200,220))
+    screen.blit(close, (modal_x + modal_w//2 - close.get_width()//2, modal_y + modal_h - 44))
+    # Scroll indicators
+    arrow_color = (120, 180, 255)
+    if start > 0:
+        pygame.draw.polygon(screen, arrow_color, [
+            (modal_x + modal_w - 44, modal_y + 100),
+            (modal_x + modal_w - 20, modal_y + 100),
+            (modal_x + modal_w - 32, modal_y + 76)
+        ])
+    if end < len(items):
+        pygame.draw.polygon(screen, arrow_color, [
+            (modal_x + modal_w - 44, modal_y + 100 + items_per_page*44),
+            (modal_x + modal_w - 20, modal_y + 100 + items_per_page*44),
+            (modal_x + modal_w - 32, modal_y + 124 + items_per_page*44)
+        ])
+
+def draw_game_background(screen, stars, cam_x, cam_y, WIDTH, HEIGHT, SUN_COLOR, SUN_POS, SUN_RADIUS, WHITE):
+    # Draw a subtle gradient background
+    bg = pygame.Surface((WIDTH, HEIGHT))
+    for y in range(HEIGHT):
+        c = int(20 + 30 * (y / HEIGHT))
+        pygame.draw.line(bg, (c, c, 48), (0, y), (WIDTH, y))
+    screen.blit(bg, (0, 0))
+    # Draw stars with glow
+    for sx, sy in stars:
+        if cam_x <= sx <= cam_x + WIDTH and cam_y <= sy <= cam_y + HEIGHT:
+            pygame.draw.circle(screen, (255,255,255,40), (sx - cam_x, sy - cam_y), 6)
+            pygame.draw.circle(screen, WHITE, (sx - cam_x, sy - cam_y), 2)
+    # Draw sun with glow
+    sun_pos = (SUN_POS[0] - cam_x, SUN_POS[1] - cam_y)
+    for r in range(SUN_RADIUS+30, SUN_RADIUS, -6):
+        alpha = max(0, 80 - (SUN_RADIUS+30-r)*4)
+        glow = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
+        pygame.draw.circle(glow, (*SUN_COLOR, alpha), (r, r), r)
+        screen.blit(glow, (sun_pos[0]-r, sun_pos[1]-r), special_flags=pygame.BLEND_RGBA_ADD)
+    pygame.draw.circle(screen, SUN_COLOR, sun_pos, SUN_RADIUS)
 
 # Remove spaceship image loading from ui.py, move to assets.py for proper modularity
 

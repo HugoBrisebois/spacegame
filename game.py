@@ -86,7 +86,12 @@ class GameState:
             "You are Errin, a pioneer of the Galactic Expansion Fleet.",
             "Your mission: travel to distant planets, colonize them, and extract their resources for humanity's future.",
             "Each world holds unique materials vital for Earth's survival and the growth of the new colonies.",
-            "Explore, land, and exploit the riches of the solar system. The fate of civilization rests on your success!"
+            "The solar system is vast and full of mysteries: from the burning iron of Mercury, to the icy reaches of Pluto, every planet offers new challenges and opportunities.",
+            "Venus's toxic clouds hide rare elements, Earth's blue oceans are a cradle for life, and Mars's red deserts are rich in silicon for advanced technology.",
+            "Jupiter and Saturn, with their swirling storms, are sources of powerful gases, while Uranus and Neptune hold secrets beneath their frozen atmospheres.",
+            "Pluto, though distant and cold, contains ancient ices that may unlock the future of space travel.",
+            "Build bases, upgrade your ship, and complete quests to ensure the survival and prosperity of humanity among the stars.",
+            "The fate of civilization rests on your success!"
         ]
         self.inventory = {}
         self.inventory_scroll = 0

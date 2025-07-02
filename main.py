@@ -75,6 +75,7 @@ show_controls = False
 show_map = False
 show_tech_tree = False  # Track if tech tree modal is open
 show_inventory = False  # Track if inventory modal is open
+inventory_scroll = 0    # Track scroll offset for inventory
 # Player world position (centered on Earth at start)
 player_x, player_y = SUN_POS[0], SUN_POS[1] + 1800
 player_angle = 0
@@ -118,16 +119,63 @@ while running:
                 show_map = not show_map
             if event.key == pygame.K_i:
                 show_inventory = not show_inventory
-
+            if show_inventory:
+                if event.key == pygame.K_DOWN:
+                    inventory_scroll += 1
+                if event.key == pygame.K_UP:
+                    inventory_scroll -= 1
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if show_inventory:
+                if event.button == 5:  # Mouse wheel down
+                    inventory_scroll += 1
+                if event.button == 4:  # Mouse wheel up
+                    inventory_scroll -= 1
+    # Clamp scroll
+    inventory_items = list(game.player.inventory.items())
+    max_scroll = max(0, len(inventory_items) - 6)
+    inventory_scroll = max(0, min(inventory_scroll, max_scroll))
     # --- TECH TREE MODAL ---
     if show_tech_tree:
-        ui.draw_tech_tree(screen, WIDTH, HEIGHT, game.player.tech_tree)
+        # Draw tech tree at bottom, get upgrade button rects
+        tech_btns = ui.draw_tech_tree(screen, WIDTH, HEIGHT, game.player.tech_tree, game.tech_upgrades)
         pygame.display.flip()
+        # Handle tech tree interaction
+        tech_tree_running = True
+        while tech_tree_running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    tech_tree_running = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        show_tech_tree = False
+                        tech_tree_running = False
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    mx, my = pygame.mouse.get_pos()
+                    for rect, upg in tech_btns:
+                        if rect.collidepoint(mx, my):
+                            upg_data = game.tech_upgrades[upg]
+                            if upg_data['level'] < upg_data['max']:
+                                upg_data['level'] += 1
+                                # Apply upgrade effect
+                                if upg == 'Speed':
+                                    player_speed += 1
+                                elif upg == 'Size':
+                                    player_size += 5
+                                elif upg == 'Fuel Tank':
+                                    player_max_fuel += 20
+                                elif upg == 'Fuel Efficiency':
+                                    player_fuel_efficiency *= 0.9
+                                elif upg == 'Max Health':
+                                    player_max_health += 20
+                                # Redraw tree with updated state
+                                tech_btns = ui.draw_tech_tree(screen, WIDTH, HEIGHT, game.player.tech_tree, game.tech_upgrades)
+                                pygame.display.flip()
         continue
 
     # --- INVENTORY MODAL ---
     if show_inventory:
-        ui.draw_inventory(screen, game.player.inventory, WIDTH, HEIGHT)
+        ui.draw_inventory(screen, game.player.inventory, WIDTH, HEIGHT, inventory_scroll)
         pygame.display.flip()
         continue
 
@@ -193,6 +241,9 @@ while running:
             if dist < pr + 10:
                 if keys[pygame.K_e]:
                     mat = planet["material"]
+                    # Allow collecting Silicon on Mars at any time
+                    if planet["name"] == "Mars" and mat == "Silicon":
+                        game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
                     if planet["name"] == quest["planet"] and mat == quest["material"] and not quest["completed"]:
                         game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
                         quest["collected"] += 1
@@ -254,46 +305,51 @@ while running:
 
     # --- MAP VIEW ---
     if show_map:
-        map_width, map_height = 400, 400
+        map_width, map_height = 600, 600  # Expanded map view
         map_surf = pygame.Surface((map_width, map_height))
-        map_surf.fill((20, 20, 40))
+        # Modern map background
+        for y in range(map_height):
+            c = int(20 + 30 * (y / map_height))
+            pygame.draw.line(map_surf, (c, c, 48), (0, y), (map_width, y))
         sun_mx = int(SUN_POS[0] / WORLD_WIDTH * map_width)
         sun_my = int(SUN_POS[1] / WORLD_HEIGHT * map_height)
-        pygame.draw.circle(map_surf, SUN_COLOR, (sun_mx, sun_my), 18)
-        font = pygame.font.SysFont(None, 20)
+        pygame.draw.circle(map_surf, SUN_COLOR, (sun_mx, sun_my), 28)
+        font = pygame.font.SysFont(None, 24)
         sun_surf = font.render("Sun", True, WHITE)
-        map_surf.blit(sun_surf, (sun_mx - 15, sun_my - 30))
+        map_surf.blit(sun_surf, (sun_mx - 20, sun_my - 40))
         for planet in planets:
             px, py = planet["pos"]
             mx = int(px / WORLD_WIDTH * map_width)
             my = int(py / WORLD_HEIGHT * map_height)
-            pygame.draw.circle(map_surf, planet["color"], (mx, my), 8)
-            font = pygame.font.SysFont(None, 18)
+            pygame.draw.circle(map_surf, planet["color"], (mx, my), 14)
+            font = pygame.font.SysFont(None, 22)
             name_surf = font.render(planet["name"], True, WHITE)
-            map_surf.blit(name_surf, (mx - 10, my - 20))
+            map_surf.blit(name_surf, (mx - 18, my - 32))
         mx = int(player_x / WORLD_WIDTH * map_width)
         my = int(player_y / WORLD_HEIGHT * map_height)
-        pygame.draw.circle(map_surf, (0,255,0), (mx, my), 6)
+        pygame.draw.circle(map_surf, (0,255,0), (mx, my), 10)
         screen.blit(map_surf, (WIDTH//2 - map_width//2, HEIGHT//2 - map_height//2))
-        pygame.draw.rect(screen, WHITE, (WIDTH//2 - map_width//2, HEIGHT//2 - map_height//2, map_width, map_height), 2)
-        font = pygame.font.SysFont(None, 28)
+        pygame.draw.rect(screen, WHITE, (WIDTH//2 - map_width//2, HEIGHT//2 - map_height//2, map_width, map_height), 3)
+        font = pygame.font.SysFont(None, 32)
         exit_surf = font.render("Press M to close map", True, WHITE)
-        screen.blit(exit_surf, (WIDTH//2 - exit_surf.get_width()//2, HEIGHT//2 + map_height//2 + 10))
+        screen.blit(exit_surf, (WIDTH//2 - exit_surf.get_width()//2, HEIGHT//2 + map_height//2 + 16))
         pygame.display.flip()
         continue
 
     # --- GAME DRAWING ---
-    screen.fill(BLACK)
-    for sx, sy in stars:
-        if cam_x <= sx <= cam_x + WIDTH and cam_y <= sy <= cam_y + HEIGHT:
-            pygame.draw.circle(screen, WHITE, (sx - cam_x, sy - cam_y), 2)
-    pygame.draw.circle(screen, SUN_COLOR, (SUN_POS[0] - cam_x, SUN_POS[1] - cam_y), SUN_RADIUS)
+    ui.draw_game_background(screen, stars, cam_x, cam_y, WIDTH, HEIGHT, SUN_COLOR, SUN_POS, SUN_RADIUS, WHITE)
     font = pygame.font.SysFont(None, 32)
     sun_surf = font.render("Sun", True, WHITE)
     screen.blit(sun_surf, (SUN_POS[0] - cam_x - 30, SUN_POS[1] - cam_y - SUN_RADIUS - 30))
     for planet in planets:
         px, py = planet["pos"]
         pr = planet["radius"]
+        # Draw planet with glow
+        for r in range(pr+18, pr, -4):
+            alpha = max(0, 60 - (pr+18-r)*4)
+            glow = pygame.Surface((r*2, r*2), pygame.SRCALPHA)
+            pygame.draw.circle(glow, (*planet["color"], alpha), (r, r), r)
+            screen.blit(glow, (int(px - cam_x - r), int(py - cam_y - r)), special_flags=pygame.BLEND_RGBA_ADD)
         pygame.draw.circle(screen, planet["color"], (int(px - cam_x), int(py - cam_y)), pr)
         font = pygame.font.SysFont(None, 24)
         name_surf = font.render(planet["name"], True, WHITE)
@@ -302,6 +358,10 @@ while running:
     # Draw spaceship at player position and angle
     rotated_img = pygame.transform.rotate(SPACESHIP_IMG, player_angle)
     rect = rotated_img.get_rect(center=(int(player_x - cam_x), int(player_y - cam_y)))
+    # Add a subtle ship shadow
+    shadow = pygame.Surface(rect.size, pygame.SRCALPHA)
+    pygame.draw.ellipse(shadow, (0,0,0,80), shadow.get_rect().move(0,8))
+    screen.blit(shadow, rect.topleft)
     screen.blit(rotated_img, rect.topleft)
     ui.draw_quest_bar(screen, game.current_quest, game.quests, WIDTH)
     ui.draw_health_fuel_bars(screen, player_health, player_max_health, player_fuel, player_max_fuel)
