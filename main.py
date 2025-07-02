@@ -131,6 +131,22 @@ BASE_REVENUE_BASE = 10
 BASE_REVENUE_MULT = 1.5
 SHIP_UPGRADE_COST = 200
 
+# --- PLAYER STATS ---
+player_health = 100
+player_max_health = 100
+player_fuel = 100
+player_max_fuel = 100
+player_fuel_efficiency = 1.0  # Lower is better
+# --- TECH TREE ---
+tech_tree_open = False
+tech_upgrades = {
+    'Speed': {'level': 0, 'max': 5, 'cost': 150, 'desc': 'Increase ship speed'},
+    'Size': {'level': 0, 'max': 3, 'cost': 200, 'desc': 'Increase ship size'},
+    'Fuel Tank': {'level': 0, 'max': 3, 'cost': 120, 'desc': 'Increase max fuel'},
+    'Fuel Efficiency': {'level': 0, 'max': 4, 'cost': 180, 'desc': 'Reduce fuel use'},
+    'Max Health': {'level': 0, 'max': 3, 'cost': 180, 'desc': 'Increase max health'},
+}
+
 def draw_start_menu():
     screen.fill(BLACK)
     font_big = pygame.font.SysFont(None, 64)
@@ -286,6 +302,56 @@ inventory_scroll = 0
 def clamp(val, minval, maxval):
     return max(minval, min(val, maxval))
 
+# --- QUEST BAR DRAWING ---
+def draw_quest_bar():
+    # Draw a modern quest bar at the top of the screen
+    bar_width, bar_height = WIDTH - 80, 48
+    bar_x, bar_y = 40, 12
+    bar_surf = pygame.Surface((bar_width, bar_height), pygame.SRCALPHA)
+    # Semi-transparent background with drop shadow
+    shadow = pygame.Surface((bar_width+8, bar_height+8), pygame.SRCALPHA)
+    shadow.fill((0,0,0,80))
+    screen.blit(shadow, (bar_x-4, bar_y-4))
+    bar_surf.fill((40, 60, 120, 210))
+    pygame.draw.rect(bar_surf, (80, 120, 200, 255), (0, 0, bar_width, bar_height), border_radius=16)
+    # Quest text
+    font = pygame.font.SysFont(None, 30)
+    if current_quest < len(quests):
+        quest = quests[current_quest]
+        quest_text = quest['desc']
+        progress = f"({quest['collected']}/{quest['amount']})" if not quest['completed'] else "(Completed)"
+        text = f"Objective: {quest_text}  {progress}"
+    else:
+        text = "All quests complete! You have secured the future of humanity."
+    text_surf = font.render(text, True, (255,255,255))
+    bar_surf.blit(text_surf, (24, bar_height//2 - text_surf.get_height()//2))
+    screen.blit(bar_surf, (bar_x, bar_y))
+
+def draw_health_fuel_bars():
+    # Draw health and fuel bars in the top left
+    bar_x, bar_y = 28, 68
+    bar_width, bar_height = 220, 22
+    spacing = 14
+    font = pygame.font.SysFont(None, 22)
+    # Health bar
+    health_ratio = player_health / player_max_health if player_max_health else 0
+    health_bg = pygame.Surface((bar_width, bar_height), pygame.SRCALPHA)
+    health_bg.fill((0,0,0,120))
+    pygame.draw.rect(health_bg, (200,40,40,255), (0,0,int(bar_width*health_ratio),bar_height), border_radius=10)
+    pygame.draw.rect(health_bg, (255,80,80,255), (0,0,int(bar_width*health_ratio),bar_height), 2, border_radius=10)
+    screen.blit(health_bg, (bar_x, bar_y))
+    health_text = font.render(f"Health: {int(player_health)}/{player_max_health}", True, (255,255,255))
+    screen.blit(health_text, (bar_x+8, bar_y+2))
+    # Fuel bar
+    fuel_ratio = player_fuel / player_max_fuel if player_max_fuel else 0
+    fuel_bg = pygame.Surface((bar_width, bar_height), pygame.SRCALPHA)
+    fuel_bg.fill((0,0,0,120))
+    pygame.draw.rect(fuel_bg, (40,120,200,255), (0,0,int(bar_width*fuel_ratio),bar_height), border_radius=10)
+    pygame.draw.rect(fuel_bg, (80,180,255,255), (0,0,int(bar_width*fuel_ratio),bar_height), 2, border_radius=10)
+    screen.blit(fuel_bg, (bar_x, bar_y+bar_height+spacing))
+    fuel_text = font.render(f"Fuel: {int(player_fuel)}/{player_max_fuel}", True, (255,255,255))
+    screen.blit(fuel_text, (bar_x+8, bar_y+bar_height+spacing+2))
+
 # Game loop
 running = True
 in_game_menu = False
@@ -328,31 +394,39 @@ while running:
                 in_game_menu = True
                 selected_btn = None
                 show_controls = False
-    # --- IN-GAME MENU HANDLING ---
+    # --- IN-GAME MENU HANDLING (move to top of loop for proper blocking) ---
     if in_game_menu:
         btn_rects = draw_game_menu(selected_btn, show_controls)
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    in_game_menu = False
-                    show_controls = False
-            if event.type == pygame.MOUSEMOTION:
-                mx, my = event.pos
-                selected_btn = None
-                for i, rect in enumerate(btn_rects):
-                    if rect.collidepoint(mx, my):
-                        selected_btn = i
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                if selected_btn == 0:  # Resume
-                    in_game_menu = False
-                    show_controls = False
-                elif selected_btn == 1:  # Controls
-                    show_controls = not show_controls
-                elif selected_btn == 2:  # Quit
-                    pygame.quit()
-                    sys.exit()
+        pygame.display.flip()
+        menu_running = True
+        while menu_running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                    menu_running = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        in_game_menu = False
+                        show_controls = False
+                        menu_running = False
+                if event.type == pygame.MOUSEMOTION:
+                    mx, my = event.pos
+                    selected_btn = None
+                    for i, rect in enumerate(btn_rects):
+                        if rect.collidepoint(mx, my):
+                            selected_btn = i
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    if selected_btn == 0:  # Resume
+                        in_game_menu = False
+                        show_controls = False
+                        menu_running = False
+                    elif selected_btn == 1:  # Controls
+                        show_controls = not show_controls
+                        btn_rects = draw_game_menu(selected_btn, show_controls)
+                        pygame.display.flip()
+                    elif selected_btn == 2:  # Quit
+                        pygame.quit()
+                        sys.exit()
         continue  # Skip rest of game loop when menu is open
     # --- CHARACTER CONTROLLER ---
     keys = pygame.key.get_pressed()
@@ -508,78 +582,95 @@ while running:
         screen.blit(name_surf, (int(px - cam_x - 30), int(py - cam_y - pr - 30)))
     # Draw spaceship
     rotated_img = pygame.transform.rotate(spaceship_img, player_angle)
-    rect = rotated_img.get_rect(center=(player_pos[0] - cam_x + player_size // 2, player_pos[1] - cam_y + player_size // 2))
+    rect = rotated_img.get_rect(center=(player_pos[0] - cam_x + player_size // 2, player_pos[1] - cam_x + player_size // 2))
     screen.blit(rotated_img, rect.topleft)
-    # Draw a modern quest/objective panel at the bottom left
-    quest_panel_width = 420
-    quest_panel_height = 70
-    quest_panel_x = 20
-    quest_panel_y = HEIGHT - quest_panel_height - 20
-    quest_panel = pygame.Surface((quest_panel_width, quest_panel_height), pygame.SRCALPHA)
-    pygame.draw.rect(quest_panel, (30, 30, 60, 220), (0, 0, quest_panel_width, quest_panel_height), border_radius=18)
-    pygame.draw.rect(quest_panel, (80, 80, 120, 120), (0, 0, quest_panel_width, quest_panel_height), 3, border_radius=18)
-    font = pygame.font.SysFont(None, 28)
-    if current_quest < len(quests):
-        quest = quests[current_quest]
-        quest_text = quest["desc"] + f" ({quest['collected']}/{quest['amount']})"
-    else:
-        quest_text = "All missions complete! You have saved the Federation!"
-    quest_surf = font.render(quest_text, True, (255, 255, 120))
-    quest_panel.blit(quest_surf, (22, 22))
-    screen.blit(quest_panel, (quest_panel_x, quest_panel_y))
-    # Draw inventory in a scrollable rounded box at the top right
-    inv_panel = pygame.Surface((INVENTORY_PANEL_WIDTH, INVENTORY_PANEL_HEIGHT), pygame.SRCALPHA)
-    pygame.draw.rect(inv_panel, (40, 40, 60, 200), (0, 0, INVENTORY_PANEL_WIDTH, INVENTORY_PANEL_HEIGHT), border_radius=16)
-    font = pygame.font.SysFont(None, 24)
-    inv_items = list(inventory.items())
-    visible_items = inv_items[inventory_scroll:inventory_scroll+INVENTORY_VISIBLE_LINES]
-    for i, (k, v) in enumerate(visible_items):
-        inv_surf = font.render(f"{k}: {v}", True, (180, 255, 180))
-        inv_panel.blit(inv_surf, (12, 8 + i * INVENTORY_LINE_HEIGHT))
-    # Draw scroll indicators if needed
-    if inventory_scroll > 0:
-        up_surf = font.render("▲", True, (255,255,255))
-        inv_panel.blit(up_surf, (INVENTORY_PANEL_WIDTH - 28, 4))
-    if inventory_scroll + INVENTORY_VISIBLE_LINES < len(inv_items):
-        down_surf = font.render("▼", True, (255,255,255))
-        inv_panel.blit(down_surf, (INVENTORY_PANEL_WIDTH - 28, INVENTORY_PANEL_HEIGHT - 28))
-    screen.blit(inv_panel, (WIDTH - INVENTORY_PANEL_WIDTH - 20, 10))
-    # Draw landing message with a drop shadow
-    if landed_planet is not None and landed_message_timer > 0:
-        font = pygame.font.SysFont(None, 32)
-        land_surf = font.render(f"Landed on {landed_planet['name']} (Press SPACE to take off)", True, (255,255,0))
-        shadow = font.render(f"Landed on {landed_planet['name']} (Press SPACE to take off)", True, (60,60,0))
-        screen.blit(shadow, (WIDTH//2 - land_surf.get_width()//2 + 2, HEIGHT - 118))
-        screen.blit(land_surf, (WIDTH//2 - land_surf.get_width()//2, HEIGHT - 120))
-        landed_message_timer -= 1
+    draw_quest_bar()
+    draw_health_fuel_bars()
 
-    # --- UI BUTTONS: BUILD BASE, UPGRADE BASE, UPGRADE SHIP ---
+    # --- BASE BUTTONS ---
     build_btn_rect = None
     upgrade_base_btn_rect = None
     upgrade_ship_btn_rect = None
-    base_on_planet = landed_planet and landed_planet['name'] in bases
+    base_on_planet = False
     if landed_planet:
-        btn_x, btn_y = 40, HEIGHT - 180
-        btn_w, btn_h = 180, 38
-        build_btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
-        pygame.draw.rect(screen, (60,180,60) if not base_on_planet else (120,120,120), build_btn_rect, border_radius=12)
-        font = pygame.font.SysFont(None, 28)
-        label = "Build Base" if not base_on_planet else "Base Built"
-        btn_surf = font.render(label, True, (255,255,255))
-        screen.blit(btn_surf, (btn_x + 18, btn_y + 6))
-        if base_on_planet:
-            upgrade_base_btn_rect = pygame.Rect(btn_x, btn_y+48, btn_w, btn_h)
-            pygame.draw.rect(screen, (60,60,180), upgrade_base_btn_rect, border_radius=12)
-            upg_surf = font.render(f"Upgrade Base ({BASE_UPGRADE_COST})", True, (255,255,255))
-            screen.blit(upg_surf, (btn_x + 8, btn_y+54))
-    upgrade_ship_btn_rect = pygame.Rect(WIDTH-240, HEIGHT-70, 200, 38)
-    pygame.draw.rect(screen, (180,120,60), upgrade_ship_btn_rect, border_radius=12)
-    font = pygame.font.SysFont(None, 28)
-    ship_surf = font.render(f"Upgrade Ship ({SHIP_UPGRADE_COST})", True, (255,255,255))
-    screen.blit(ship_surf, (WIDTH-230, HEIGHT-64))
-    font = pygame.font.SysFont(None, 28)
-    rev_surf = font.render(f"Revenue: {revenue}", True, (255,255,120))
-    screen.blit(rev_surf, (WIDTH-230, HEIGHT-110))
+        pname = landed_planet['name']
+        base_on_planet = pname in bases
+        font_btn = pygame.font.SysFont(None, 28)
+        btn_y = HEIGHT - 110
+        if not base_on_planet:
+            build_btn_rect = pygame.Rect(40, btn_y, 180, 44)
+            pygame.draw.rect(screen, (60,200,100), build_btn_rect, border_radius=10)
+            build_txt = font_btn.render("Build Base", True, (255,255,255))
+            screen.blit(build_txt, (build_btn_rect.x + 20, build_btn_rect.y + 8))
+        else:
+            upgrade_base_btn_rect = pygame.Rect(40, btn_y, 180, 44)
+            pygame.draw.rect(screen, (200,180,60), upgrade_base_btn_rect, border_radius=10)
+            upg_txt = font_btn.render("Upgrade Base", True, (255,255,255))
+            screen.blit(upg_txt, (upgrade_base_btn_rect.x + 10, upgrade_base_btn_rect.y + 8))
+        # Ship upgrade button
+        upgrade_ship_btn_rect = pygame.Rect(240, btn_y, 180, 44)
+        pygame.draw.rect(screen, (80,120,220), upgrade_ship_btn_rect, border_radius=10)
+        ship_txt = font_btn.render("Upgrade Ship", True, (255,255,255))
+        screen.blit(ship_txt, (upgrade_ship_btn_rect.x + 10, upgrade_ship_btn_rect.y + 8))
+
+    # Tech tree button (top right)
+    tech_btn_rect = pygame.Rect(WIDTH-160, 18, 130, 38)
+    pygame.draw.rect(screen, (60,120,200), tech_btn_rect, border_radius=12)
+    font = pygame.font.SysFont(None, 26)
+    tech_surf = font.render("Tech Tree", True, (255,255,255))
+    screen.blit(tech_surf, (WIDTH-150, 26))
+    # Tech tree modal
+    if tech_tree_open:
+        close_rect = draw_tech_tree()
+    # --- TECH TREE DRAW FUNCTION ---
+    def draw_tech_tree():
+        panel_width, panel_height = 520, 420
+        panel_x = WIDTH // 2 - panel_width // 2
+        panel_y = HEIGHT // 2 - panel_height // 2
+        panel = pygame.Surface((panel_width, panel_height), pygame.SRCALPHA)
+        panel.fill((30, 30, 60, 240))
+        pygame.draw.rect(panel, (80, 120, 200, 255), (0, 0, panel_width, panel_height), border_radius=18)
+        font = pygame.font.SysFont(None, 40)
+        title = font.render("Tech Tree", True, (255,255,255))
+        panel.blit(title, (panel_width//2 - title.get_width()//2, 24))
+        font2 = pygame.font.SysFont(None, 28)
+        font3 = pygame.font.SysFont(None, 22)
+        y = 80
+        upg_btns = []
+        for i, (name, upg) in enumerate(tech_upgrades.items()):
+            desc = upg['desc']
+            level = upg['level']
+            max_level = upg['max']
+            cost = upg['cost']
+            color = (180,255,180) if level < max_level else (180,180,180)
+            txt = f"{name} ({level}/{max_level})"
+            txt_surf = font2.render(txt, True, color)
+            panel.blit(txt_surf, (40, y))
+            desc_surf = font3.render(desc, True, (220,220,255))
+            panel.blit(desc_surf, (40, y+28))
+            btn_rect = pygame.Rect(panel_x+340, panel_y+y, 120, 36)
+            upg['_rect'] = btn_rect
+            btn_color = (60,200,100) if level < max_level and revenue >= cost else (120,120,120)
+            pygame.draw.rect(screen, btn_color, btn_rect, border_radius=10)
+            btn_txt = "Upgrade" if level < max_level else "Maxed"
+            btn_txt_surf = font3.render(btn_txt, True, (255,255,255))
+            screen.blit(btn_txt_surf, (btn_rect.x + 16, btn_rect.y + 7))
+            cost_txt = f"{cost} revenue"
+            cost_surf = font3.render(cost_txt, True, (255,255,180))
+            screen.blit(cost_surf, (btn_rect.x + 16, btn_rect.y + 22))
+            upg_btns.append(btn_rect)
+            y += 70
+        # Draw panel to screen
+        screen.blit(panel, (panel_x, panel_y))
+        # Draw close button
+        close_rect = pygame.Rect(panel_x + panel_width - 44, panel_y + 12, 32, 32)
+        pygame.draw.rect(screen, (200,60,60), close_rect, border_radius=8)
+        font_close = pygame.font.SysFont(None, 32)
+        close_surf = font_close.render("X", True, (255,255,255))
+        screen.blit(close_surf, (close_rect.x + 7, close_rect.y + 2))
+        pygame.display.flip()
+        return close_rect
+
     # --- BUTTON LOGIC ---
     if click:
         if landed_planet and build_btn_rect and build_btn_rect.collidepoint(mouse):
@@ -595,8 +686,38 @@ while running:
                 player_size += 2
                 spaceship_img = pygame.transform.scale(spaceship_img, (player_size, player_size))
                 revenue -= SHIP_UPGRADE_COST
+        if tech_btn_rect.collidepoint(mouse):
+            tech_tree_open = True
+        if tech_tree_open:
+            if close_rect.collidepoint(mouse):
+                tech_tree_open = False
+            for name, upg in tech_upgrades.items():
+                if upg['_rect'].collidepoint(mouse):
+                    if upg['level'] < upg['max'] and revenue >= upg['cost']:
+                        upg['level'] += 1
+                        revenue -= upg['cost']
+                        if name == 'Speed':
+                            player_speed += 1
+                        elif name == 'Size':
+                            player_size += 4
+                            spaceship_img = pygame.transform.scale(spaceship_img, (player_size, player_size))
+                        elif name == 'Fuel Tank':
+                            player_max_fuel += 40
+                        elif name == 'Fuel Efficiency':
+                            player_fuel_efficiency *= 0.85
+                        elif name == 'Max Health':
+                            player_max_health += 30
+                            player_health = player_max_health
 
-    pygame.display.flip()
+    # --- FUEL CONSUMPTION ---
+    if landed_planet is None:
+        if move_x != 0 or move_y != 0:
+            player_fuel -= 0.12 * player_fuel_efficiency
+            if player_fuel < 0:
+                player_fuel = 0
+    # Clamp health/fuel
+    player_health = max(0, min(player_max_health, player_health))
+    player_fuel = max(0, min(player_max_fuel, player_fuel))
 
 pygame.quit()
 sys.exit()
