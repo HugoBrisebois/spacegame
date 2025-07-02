@@ -62,9 +62,6 @@ class GameState:
         self.tech_upgrades = {
             'Speed': {'level': 0, 'max': 5, 'materials': {'Iron': 2, 'Xenon': 1}, 'desc': 'Increase ship speed'},
             'Size': {'level': 0, 'max': 3, 'materials': {'Crystal': 2, 'Water': 1}, 'desc': 'Increase ship size'},
-            'Fuel Tank': {'level': 0, 'max': 3, 'materials': {'Ice': 2, 'Sulfur': 1}, 'desc': 'Increase max fuel'},
-            'Fuel Efficiency': {'level': 0, 'max': 4, 'materials': {'Silicon': 2, 'Helium-3': 1}, 'desc': 'Reduce fuel use'},
-            'Max Health': {'level': 0, 'max': 3, 'materials': {'Organics': 2, 'Platinum': 1}, 'desc': 'Increase max health'},
         }
         self.base_on_planet = None
         self.story = [
@@ -95,14 +92,21 @@ class GameState:
     def can_collect_resource(self, planet, material):
         """
         Returns True if the player can collect the resource for the current quest on the given planet.
+        Debugs mismatches if collection fails.
         """
         if not (0 <= self.current_quest < len(self.quests)):
+            print(f"[DEBUG] Invalid current_quest index: {self.current_quest}")
             return False
         quest = self.quests[self.current_quest]
-        return (
-            not quest['completed'] and
-            quest['planet'] == planet and
-            quest['material'] == material
-        )
+        if quest['completed']:
+            print(f"[DEBUG] Quest already completed: {quest}")
+            return False
+        if quest['planet'] != planet:
+            print(f"[DEBUG] Planet mismatch: quest expects '{quest['planet']}', got '{planet}'")
+            return False
+        if quest['material'] != material:
+            print(f"[DEBUG] Material mismatch: quest expects '{quest['material']}', got '{material}'")
+            return False
+        return True
 
 # Add more game logic as needed
