@@ -35,7 +35,6 @@ controls_text = [
     "Reverse: S",
     "Land: Approach a planet and stop",
     "Take Off: SPACE (when landed)",
-    "Build Base: Click 'Build Base' button when landed",
     "Open Tech Tree: Click tech tree button (top right)",
     "Show Map: M",
     "Open Menu: ESC",
@@ -81,11 +80,6 @@ player_x, player_y = SUN_POS[0], SUN_POS[1] + 1800
 player_angle = 0
 player_speed = PLAYER_SPEED
 player_size = PLAYER_SIZE
-player_health = 100
-player_max_health = 100
-player_fuel = 100
-player_max_fuel = 100
-player_fuel_efficiency = 1.0
 landed_planet = None
 landed_angle = None  # Angle at which the ship landed
 
@@ -282,47 +276,23 @@ while running:
     # --- QUEST LOGIC ---
     if game.current_quest < len(game.quests):
         quest = game.quests[game.current_quest]
+        gathered_this_frame = False
         for planet in planets:
             px, py = planet["pos"]
             pr = planet["radius"]
             dist = math.hypot(player_x - px, player_y - py)
             if dist < pr + 10:
-                if keys[pygame.K_e]:
-                    mat = planet["material"]
-                    # Allow collecting Silicon on Mars at any time, but only add once per press
-                    if planet["name"] == "Mars" and mat == "Silicon":
-                        if planet["name"] == quest["planet"] and mat == quest["material"] and not quest["completed"]:
-                            # If it's the quest, increment quest progress and inventory once
-                            game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
-                            quest["collected"] += 1
-                            if quest["collected"] >= quest["amount"]:
-                                quest["completed"] = True
-                                # Apply reward
-                                if "speed" in quest["reward"]:
-                                    player_speed += quest["reward"]["speed"]
-                                if "size" in quest["reward"]:
-                                    player_size += quest["reward"]["size"]
-                                if "fuel" in quest["reward"]:
-                                    player_fuel = min(player_max_fuel, player_fuel + quest["reward"]["fuel"])
-                                if "health" in quest["reward"]:
-                                    player_health = min(player_max_health, player_health + quest["reward"]["health"])
-                                if "fuel_efficiency" in quest["reward"]:
-                                    player_fuel_efficiency *= quest["reward"]["fuel_efficiency"]
-                                if "win" in quest["reward"]:
-                                    pass
-                                game.current_quest += 1
-                                # Check for system completion
-                                start, end = system_quest_ranges[current_system]
-                                if game.current_quest == end:
-                                    if current_system+1 < len(system_names):
-                                        in_hyperjump = True
-                                        hyperjump_timer = 0
-                                        break
-                        else:
-                            # Not the quest, just add to inventory
-                            game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
-                    elif planet["name"] == quest["planet"] and mat == quest["material"] and not quest["completed"]:
-                        game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
+                mat = planet["material"]
+                # Show gather prompt for any planet
+                font = pygame.font.SysFont(None, 36)
+                gather_msg = f"Press E to gather {mat}"
+                prompt = font.render(gather_msg, True, (255,255,0))
+                screen.blit(prompt, (WIDTH//2 - prompt.get_width()//2, HEIGHT//2 + 120))
+                # Only allow gathering once per frame
+                if keys[pygame.K_e] and not gathered_this_frame:
+                    game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
+                    # If this is the quest planet/material and quest not completed, increment quest progress
+                    if planet["name"] == quest["planet"] and mat == quest["material"] and not quest["completed"]:
                         quest["collected"] += 1
                         if quest["collected"] >= quest["amount"]:
                             quest["completed"] = True
@@ -331,14 +301,6 @@ while running:
                                 player_speed += quest["reward"]["speed"]
                             if "size" in quest["reward"]:
                                 player_size += quest["reward"]["size"]
-                            if "fuel" in quest["reward"]:
-                                player_fuel = min(player_max_fuel, player_fuel + quest["reward"]["fuel"])
-                            if "health" in quest["reward"]:
-                                player_health = min(player_max_health, player_health + quest["reward"]["health"])
-                            if "fuel_efficiency" in quest["reward"]:
-                                player_fuel_efficiency *= quest["reward"]["fuel_efficiency"]
-                            if "win" in quest["reward"]:
-                                pass
                             game.current_quest += 1
                             # Check for system completion
                             start, end = system_quest_ranges[current_system]
@@ -347,6 +309,9 @@ while running:
                                     in_hyperjump = True
                                     hyperjump_timer = 0
                                     break
+                    gathered_this_frame = True
+                break
+
     # --- IN-GAME MENU ---
     if game.menu_open:
         btn_rects = ui.draw_game_menu(screen, selected_btn, show_controls)
@@ -464,36 +429,15 @@ while running:
     screen.blit(shadow, rect.topleft)
     screen.blit(rotated_img, rect.topleft)
     ui.draw_quest_bar(screen, game.current_quest, game.quests, WIDTH)
-    ui.draw_health_fuel_bars(screen, player_health, player_max_health, player_fuel, player_max_fuel)
-
-    # --- BUILD BASE BUTTON ---
-    build_btn_rect = None
-    if landed_planet is not None and not game.player.bases.get(landed_planet["name"], False):
-        # Draw the build base button at the bottom center of the screen
-        btn_width, btn_height = 220, 50
-        btn_x = WIDTH // 2 - btn_width // 2
-        btn_y = HEIGHT - btn_height - 40
-        build_btn_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
-        pygame.draw.rect(screen, (60, 180, 60), build_btn_rect, border_radius=12)
-        font = pygame.font.SysFont(None, 36)
-        btn_text = font.render("Build Base", True, WHITE)
-        screen.blit(btn_text, (btn_x + btn_width//2 - btn_text.get_width()//2, btn_y + btn_height//2 - btn_text.get_height()//2))
-        # Check for click
-        if build_btn_rect.collidepoint(mouse) and click:
-            game.player.bases[landed_planet["name"]] = True
-            # Optionally: play sound or show feedback
-
     # --- TECH TREE BUTTON ---
     tech_btn_rect = ui.draw_tech_tree_button(screen, WIDTH)
     if tech_btn_rect and tech_btn_rect.collidepoint(mouse) and click:
         show_tech_tree = True
-
     # Show landing message if landed
     if landed_planet is not None:
         font = pygame.font.SysFont(None, 40)
         msg = font.render("LANDED! Press SPACE to take off", True, (255,255,0))
         screen.blit(msg, (WIDTH//2 - msg.get_width()//2, HEIGHT//2 + 80))
-
     pygame.display.flip()
 
 pygame.quit()
