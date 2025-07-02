@@ -2,7 +2,7 @@ import sys
 import pygame
 import math
 import random
-from assets import WIDTH, HEIGHT, BLACK, WHITE, SUN_COLOR, SUN_POS, SUN_RADIUS, PLAYER_SIZE, PLAYER_SPEED, SPACESHIP_IMG
+from assets import WIDTH, HEIGHT, BLACK, WHITE, SUN_COLOR, SUN_POS, SUN_RADIUS, PLAYER_SIZE, PLAYER_SPEED, load_spaceship_image
 from planets import PLANETS, update_planet_positions, get_planet_position, get_planet_positions
 from game import GameState
 import ui
@@ -16,6 +16,13 @@ clock = pygame.time.Clock()
 stars = [(random.randint(0, WIDTH*6), random.randint(0, HEIGHT*6)) for _ in range(300)]
 
 game = GameState()
+
+# Load spaceship image at game start
+SPACESHIP_IMG = load_spaceship_image(PLAYER_SIZE)
+if SPACESHIP_IMG is None:
+    print("Error: Could not load spaceship.png. Please ensure the file exists in your project folder.")
+    pygame.quit()
+    sys.exit()
 
 # --- START MENU LOOP ---
 in_menu = True

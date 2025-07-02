@@ -174,4 +174,6 @@ def show_cutscene(screen, WIDTH, HEIGHT):
         if (pygame.time.get_ticks() - start_time) > cutscene_duration * 1000:
             return
 
+# Remove spaceship image loading from ui.py, move to assets.py for proper modularity
+
 # Add more UI helpers as needed

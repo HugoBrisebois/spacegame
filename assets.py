@@ -22,15 +22,22 @@ PLAYER_SIZE = 20
 PLAYER_SPEED = 5
 
 # Asset loading
+import os
 import pygame
-import sys
-try:
-    SPACESHIP_IMG = pygame.image.load("spaceship.png").convert_alpha()
-    SPACESHIP_IMG = pygame.transform.scale(SPACESHIP_IMG, (PLAYER_SIZE, PLAYER_SIZE))
-except pygame.error:
-    print("Could not load spaceship.png. Make sure the image is in the project folder.")
-    pygame.quit()
-    sys.exit()
+
+
+def load_spaceship_image(size):
+    img_path = os.path.join(os.path.dirname(__file__), "spaceship.png")
+    if not os.path.exists(img_path):
+        print(f"Could not find {img_path}. Make sure the image is in the project folder.")
+        return None
+    try:
+        img = pygame.image.load(img_path).convert_alpha()
+        img = pygame.transform.scale(img, (size, size))
+        return img
+    except Exception as e:
+        print(f"Error loading {img_path}: {e}")
+        return None
 
 
 # Fonts (example, can be loaded as needed)
