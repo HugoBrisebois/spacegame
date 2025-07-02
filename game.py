@@ -15,6 +15,7 @@ class Player:
         self.base_built = False
         self.angle = 0
         self.inventory = {}
+        self.bases = {}  # Track bases built on planets
 
     def move(self, dx, dy):
         self.x += dx * PLAYER_SPEED
