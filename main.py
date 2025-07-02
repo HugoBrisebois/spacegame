@@ -84,15 +84,19 @@ landed_planet = None
 landed_angle = None  # Angle at which the ship landed
 
 # --- SYSTEM PROGRESSION STATE ---
+# Update quest system to include Jupiter - Neptune in the beginning (Solar System)
+# Update system_quest_ranges accordingly
 system_names = [
-    "Solar System",
-    "Alpha Centauri",
-    "Trappist-1"
+    "Inner Worlds",      # Mercury to Mars
+    "Outer Worlds",      # Jupiter to Pluto
+    "Alpha Centauri",   # Centauri Prime to Centauri Tertius
+    "Trappist-1"        # Trappist-1e to Trappist-1h
 ]
 system_quest_ranges = [
-    (0, 4),    # Solar System quests (0-3)
-    (4, 7),    # Alpha Centauri quests (4-6)
-    (7, 10)    # Trappist-1 quests (7-9)
+    (0, 4),    # Mercury to Mars (0-3)
+    (4, 9),    # Jupiter to Pluto (4-8)
+    (9, 12),   # Centauri Prime to Centauri Tertius (9-11)
+    (12, 15)   # Trappist-1e to Trappist-1h (12-14)
 ]
 current_system = 0
 in_hyperjump = False
@@ -245,7 +249,13 @@ while running:
     if in_hyperjump:
         screen.fill((0,0,0))
         font = pygame.font.SysFont(None, 64)
-        msg = font.render(f"Entering Hyperspeed to {system_names[current_system+1]}!", True, (120,220,255)) if current_system+1 < len(system_names) else font.render("You have completed all systems!", True, (120,255,120))
+        # Custom hyperspeed message for first jump
+        if current_system == 1:
+            msg = font.render("Entering Hyperspeed to Outer Worlds!", True, (120,220,255))
+        elif current_system+1 < len(system_names):
+            msg = font.render(f"Entering Hyperspeed to {system_names[current_system+1]}!", True, (120,220,255))
+        else:
+            msg = font.render("You have completed all systems!", True, (120,255,120))
         screen.blit(msg, (WIDTH//2 - msg.get_width()//2, HEIGHT//2 - 40))
         # Draw streaks for effect
         for _ in range(80):
@@ -264,25 +274,40 @@ while running:
                 # Place player at first planet of next system
                 system_start = system_quest_ranges[current_system][0]
                 next_planet_name = game.quests[system_start]["planet"]
+                # Special case: first jump, teleport to Jupiter
+                if current_system == 1:
+                    next_planet_name = "Jupiter"
+                found = False
                 for p in planets:
                     if p["name"] == next_planet_name:
                         player_x, player_y = p["pos"]
+                        found = True
                         break
-                # Reset fuel/health if desired
-                player_fuel = player_max_fuel
-                player_health = player_max_health
-            continue
+                if not found:
+                    print(f"[ERROR] Could not find planet '{next_planet_name}' in planets list for hyperspeed teleport!")
+        continue
 
-    # --- QUEST LOGIC (CLEAN: all main solar system quests accessible, auto-advance active quest) ---
-    for quest_idx in range(4):  # Allow all 4 main system quests
-        quest = game.quests[quest_idx]
+    # --- QUEST LOGIC: Progress by system, hyperspeed to next when all done ---
+    # Restrict quest logic to Mercury, Venus, Earth, and Mars
+    allowed_planets = {"Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Pluto", "Neptune", "Uranus"}
+    start_idx, end_idx = system_quest_ranges[current_system]
+    # Find the first incomplete quest in the current system
+    active_quest_idx = None
+    for i in range(start_idx, end_idx):
+        if not game.quests[i]['completed']:
+            active_quest_idx = i
+            break
+    if active_quest_idx is not None:
+        quest = game.quests[active_quest_idx]
         for planet in planets:
+            if planet["name"] not in allowed_planets:
+                continue
             px, py = planet["pos"]
             pr = planet["radius"]
             dist = math.hypot(player_x - px, player_y - py)
             if dist < pr + 10:
                 mat = planet["material"]
-                # Show gather prompt for any planet
+                # Always show gather prompt and allow collection for any allowed planet
                 font = pygame.font.SysFont(None, 36)
                 gather_msg = f"Press E to gather {mat}"
                 prompt = font.render(gather_msg, True, (255,255,0))
@@ -290,21 +315,34 @@ while running:
                 if keys[pygame.K_e]:
                     # Add material to inventory
                     game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
-                    # If this is the quest planet/material and quest not completed, increment quest progress
-                    if not quest['completed'] and planet["name"] == quest["planet"] and mat == quest["material"]:
+                    # Increment quest progress only if this matches the current quest
+                    if planet["name"] == quest["planet"] and mat == quest["material"] and not quest['completed']:
                         quest["collected"] += 1
                         if quest["collected"] >= quest["amount"]:
                             quest["completed"] = True
-                            # Set next incomplete quest as current_quest
-                            for i in range(4):
-                                if not game.quests[i]['completed']:
-                                    game.current_quest = i
+                            # Find next incomplete quest in this system
+                            for j in range(start_idx, end_idx):
+                                if not game.quests[j]['completed']:
+                                    game.current_quest = j
                                     break
                             else:
-                                game.current_quest = 3  # If all complete, keep last
-                    # else: do nothing if not correct planet/material or already completed
+                                # All quests in this system complete, trigger hyperspeed
+                                if current_system + 1 < len(system_quest_ranges):
+                                    in_hyperjump = True
+                                    hyperjump_timer = 0
+                                    current_system += 1
+                                    # Move to first quest of next system
+                                    next_start, _ = system_quest_ranges[current_system]
+                                    game.current_quest = next_start
+                                else:
+                                    # End of game, keep last quest
+                                    game.current_quest = len(game.quests) - 1
                 break
-
+    else:
+        # All quests in this system complete, waiting for hyperspeed
+        pass
+    # Draw only the current active quest in the quest bar
+    ui.draw_quest_bar(screen, game.current_quest, game.quests, WIDTH)
     # --- IN-GAME MENU ---
     if game.menu_open:
         btn_rects = ui.draw_game_menu(screen, selected_btn, show_controls)

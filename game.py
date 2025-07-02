@@ -25,13 +25,17 @@ class Player:
         self.y = max(0, min(self.y, WORLD_HEIGHT - PLAYER_SIZE))
         self.rect.topleft = (self.x, self.y)
 
-# Quest system
+# Update QUESTS in game.py to include Jupiter - Neptune in the Solar System section
 QUESTS = [
-    # Solar System
+    # Solar System (now includes Jupiter - Neptune)
     {"desc": "Colonize Mercury and extract 3 Iron for Earth's new outpost.", "planet": "Mercury", "material": "Iron", "amount": 3, "collected": 0, "completed": False, "reward": {"speed": 1}},
     {"desc": "Establish a mining base on Venus and collect 2 Sulfur for advanced fuel.", "planet": "Venus", "material": "Sulfur", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
     {"desc": "Terraform Earth by gathering 2 Water for the new colony's life support.", "planet": "Earth", "material": "Water", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
     {"desc": "Exploit Mars for 4 Silicon to build the first Martian city.", "planet": "Mars", "material": "Silicon", "amount": 4, "collected": 0, "completed": False, "reward": {"win": True}},
+    {"desc": "Harvest Ammonia from Jupiter for advanced life support.", "planet": "Jupiter", "material": "Ammonia", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
+    {"desc": "Mine Methane from Saturn for fuel research.", "planet": "Saturn", "material": "Methane", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
+    {"desc": "Collect Uranium from Uranus for power generation.", "planet": "Uranus", "material": "Uranium", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
+    {"desc": "Extract Deuterium from Neptune for fusion research.", "planet": "Neptune", "material": "Deuterium", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
     # Alpha Centauri
     {"desc": "Mine Centauri Prime for 3 Crystal to power advanced tech.", "planet": "Centauri Prime", "material": "Crystal", "amount": 3, "collected": 0, "completed": False, "reward": {"size": 10}},
     {"desc": "Harvest 2 Xenon from Centauri Secundus for propulsion research.", "planet": "Centauri Secundus", "material": "Xenon", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
@@ -49,6 +53,7 @@ class GameState:
         # Ensure all quests start as incomplete
         for q in self.quests:
             q['completed'] = False
+            q['collected'] = 0
         self.current_quest = 0
         self.bases = {}  # planet_name: {level, revenue, last_collected}
         self.revenue = 0

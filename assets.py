@@ -11,7 +11,10 @@ SUN_COLOR = (255, 255, 100)
 WIDTH, HEIGHT = 800, 600
 
 # World/map settings
-WORLD_WIDTH, WORLD_HEIGHT = 5200, 5200
+# Expand WORLD_WIDTH and WORLD_HEIGHT to fit all Solar System planets, including Neptune
+# For a large solar system, set world size to 20000x20000 (adjust as needed for your planet orbits)
+WORLD_WIDTH = 20000
+WORLD_HEIGHT = 20000
 
 # Sun
 SUN_POS = (WORLD_WIDTH // 2, WORLD_HEIGHT // 2)
