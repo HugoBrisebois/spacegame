@@ -174,6 +174,30 @@ def show_cutscene(screen, WIDTH, HEIGHT):
         if (pygame.time.get_ticks() - start_time) > cutscene_duration * 1000:
             return
 
+def draw_base_buttons(screen, HEIGHT, landed_planet, base_on_planet):
+    build_btn_rect = None
+    upgrade_base_btn_rect = None
+    upgrade_ship_btn_rect = None
+    font_btn = get_font(28)
+    btn_y = HEIGHT - 110
+    if landed_planet:
+        pname = landed_planet['name']
+        if not base_on_planet:
+            build_btn_rect = pygame.Rect(40, btn_y, 180, 44)
+            pygame.draw.rect(screen, (60,200,100), build_btn_rect, border_radius=10)
+            build_txt = font_btn.render("Build Base", True, (255,255,255))
+            screen.blit(build_txt, (build_btn_rect.x + 20, build_btn_rect.y + 8))
+        else:
+            upgrade_base_btn_rect = pygame.Rect(40, btn_y, 180, 44)
+            pygame.draw.rect(screen, (200,180,60), upgrade_base_btn_rect, border_radius=10)
+            upg_txt = font_btn.render("Upgrade Base", True, (255,255,255))
+            screen.blit(upg_txt, (upgrade_base_btn_rect.x + 10, upgrade_base_btn_rect.y + 8))
+        upgrade_ship_btn_rect = pygame.Rect(240, btn_y, 180, 44)
+        pygame.draw.rect(screen, (80,120,220), upgrade_ship_btn_rect, border_radius=10)
+        ship_txt = font_btn.render("Upgrade Ship", True, (255,255,255))
+        screen.blit(ship_txt, (upgrade_ship_btn_rect.x + 10, upgrade_ship_btn_rect.y + 8))
+    return build_btn_rect, upgrade_base_btn_rect, upgrade_ship_btn_rect
+
 # Remove spaceship image loading from ui.py, move to assets.py for proper modularity
 
 # Add more UI helpers as needed
