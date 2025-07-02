@@ -273,10 +273,9 @@ while running:
                 player_health = player_max_health
             continue
 
-    # --- QUEST LOGIC ---
-    if game.current_quest < len(game.quests):
-        quest = game.quests[game.current_quest]
-        gathered_this_frame = False
+    # --- QUEST LOGIC (CLEAN: all main solar system quests accessible, auto-advance active quest) ---
+    for quest_idx in range(4):  # Allow all 4 main system quests
+        quest = game.quests[quest_idx]
         for planet in planets:
             px, py = planet["pos"]
             pr = planet["radius"]
@@ -288,28 +287,22 @@ while running:
                 gather_msg = f"Press E to gather {mat}"
                 prompt = font.render(gather_msg, True, (255,255,0))
                 screen.blit(prompt, (WIDTH//2 - prompt.get_width()//2, HEIGHT//2 + 120))
-                # Only allow gathering once per frame
-                if keys[pygame.K_e] and not gathered_this_frame:
+                if keys[pygame.K_e]:
+                    # Add material to inventory
                     game.player.inventory[mat] = game.player.inventory.get(mat, 0) + 1
                     # If this is the quest planet/material and quest not completed, increment quest progress
-                    if planet["name"] == quest["planet"] and mat == quest["material"] and not quest["completed"]:
+                    if not quest['completed'] and planet["name"] == quest["planet"] and mat == quest["material"]:
                         quest["collected"] += 1
                         if quest["collected"] >= quest["amount"]:
                             quest["completed"] = True
-                            # Apply reward
-                            if "speed" in quest["reward"]:
-                                player_speed += quest["reward"]["speed"]
-                            if "size" in quest["reward"]:
-                                player_size += quest["reward"]["size"]
-                            game.current_quest += 1
-                            # Check for system completion
-                            start, end = system_quest_ranges[current_system]
-                            if game.current_quest == end:
-                                if current_system+1 < len(system_names):
-                                    in_hyperjump = True
-                                    hyperjump_timer = 0
+                            # Set next incomplete quest as current_quest
+                            for i in range(4):
+                                if not game.quests[i]['completed']:
+                                    game.current_quest = i
                                     break
-                    gathered_this_frame = True
+                            else:
+                                game.current_quest = 3  # If all complete, keep last
+                    # else: do nothing if not correct planet/material or already completed
                 break
 
     # --- IN-GAME MENU ---
@@ -428,6 +421,7 @@ while running:
     pygame.draw.ellipse(shadow, (0,0,0,80), shadow.get_rect().move(0,8))
     screen.blit(shadow, rect.topleft)
     screen.blit(rotated_img, rect.topleft)
+    # Draw only the current active quest in the quest bar
     ui.draw_quest_bar(screen, game.current_quest, game.quests, WIDTH)
     # --- TECH TREE BUTTON ---
     tech_btn_rect = ui.draw_tech_tree_button(screen, WIDTH)

@@ -27,116 +27,39 @@ class Player:
 
 # Quest system
 QUESTS = [
-    # Solar System 1
-    {
-        "desc": "Colonize Mercury and extract 3 Iron for Earth's new outpost.",
-        "planet": "Mercury",
-        "material": "Iron",
-        "amount": 3,
-        "collected": 0,
-        "completed": False,
-        "reward": {"speed": 1}
-    },
-    {
-        "desc": "Establish a mining base on Venus and collect 2 Sulfur for advanced fuel.",
-        "planet": "Venus",
-        "material": "Sulfur",
-        "amount": 2,
-        "collected": 0,
-        "completed": False,
-        "reward": {"speed": 1}
-    },
-    {
-        "desc": "Terraform Earth by gathering 2 Water for the new colony's life support.",
-        "planet": "Earth",
-        "material": "Water",
-        "amount": 2,
-        "collected": 0,
-        "completed": False,
-        "reward": {"size": 10}
-    },
-    {
-        "desc": "Exploit Mars for 4 Silicon to build the first Martian city.",
-        "planet": "Mars",
-        "material": "Silicon",
-        "amount": 4,
-        "collected": 0,
-        "completed": False,
-        "reward": {"win": True}
-    },
-    # Alpha Centauri system
-    {
-        "desc": "Travel to Centauri Prime and collect 5 Xenon for advanced propulsion.",
-        "planet": "Centauri Prime",
-        "material": "Xenon",
-        "amount": 5,
-        "collected": 0,
-        "completed": False,
-        "reward": {"fuel": 30}
-    },
-    {
-        "desc": "Harvest 3 Crystal from Centauri Secundus for quantum computers.",
-        "planet": "Centauri Secundus",
-        "material": "Crystal",
-        "amount": 3,
-        "collected": 0,
-        "completed": False,
-        "reward": {"size": 10}
-    },
-    {
-        "desc": "Collect 4 Helium-3 from the gas giant Centauri Tertius.",
-        "planet": "Centauri Tertius",
-        "material": "Helium-3",
-        "amount": 4,
-        "collected": 0,
-        "completed": False,
-        "reward": {"fuel_efficiency": 0.8}
-    },
-    # Trappist-1 system
-    {
-        "desc": "Land on Trappist-1e and gather 6 Organics for terraforming.",
-        "planet": "Trappist-1e",
-        "material": "Organics",
-        "amount": 6,
-        "collected": 0,
-        "completed": False,
-        "reward": {"health": 30}
-    },
-    {
-        "desc": "Mine 5 Ice from Trappist-1g for water reserves.",
-        "planet": "Trappist-1g",
-        "material": "Ice",
-        "amount": 5,
-        "collected": 0,
-        "completed": False,
-        "reward": {"fuel": 40}
-    },
-    {
-        "desc": "Establish a base on Trappist-1h and collect 3 Rare Metals.",
-        "planet": "Trappist-1h",
-        "material": "Rare Metals",
-        "amount": 3,
-        "collected": 0,
-        "completed": False,
-        "reward": {"win": True}
-    }
+    # Solar System
+    {"desc": "Colonize Mercury and extract 3 Iron for Earth's new outpost.", "planet": "Mercury", "material": "Iron", "amount": 3, "collected": 0, "completed": False, "reward": {"speed": 1}},
+    {"desc": "Establish a mining base on Venus and collect 2 Sulfur for advanced fuel.", "planet": "Venus", "material": "Sulfur", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
+    {"desc": "Terraform Earth by gathering 2 Water for the new colony's life support.", "planet": "Earth", "material": "Water", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
+    {"desc": "Exploit Mars for 4 Silicon to build the first Martian city.", "planet": "Mars", "material": "Silicon", "amount": 4, "collected": 0, "completed": False, "reward": {"win": True}},
+    # Alpha Centauri
+    {"desc": "Mine Centauri Prime for 3 Crystal to power advanced tech.", "planet": "Centauri Prime", "material": "Crystal", "amount": 3, "collected": 0, "completed": False, "reward": {"size": 10}},
+    {"desc": "Harvest 2 Xenon from Centauri Secundus for propulsion research.", "planet": "Centauri Secundus", "material": "Xenon", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
+    {"desc": "Build a colony on Centauri Tertius and collect 2 Ice for life support.", "planet": "Centauri Tertius", "material": "Ice", "amount": 2, "collected": 0, "completed": False, "reward": {"fuel": 20}},
+    # Trappist-1
+    {"desc": "Extract 3 Organics from Trappist-1e for food production.", "planet": "Trappist-1e", "material": "Organics", "amount": 3, "collected": 0, "completed": False, "reward": {"health": 20}},
+    {"desc": "Mine 2 Platinum from Trappist-1f for advanced electronics.", "planet": "Trappist-1f", "material": "Platinum", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
+    {"desc": "Harvest 2 Helium-3 from Trappist-1g for fusion power.", "planet": "Trappist-1g", "material": "Helium-3", "amount": 2, "collected": 0, "completed": False, "reward": {"win": True}}
 ]
 
 class GameState:
     def __init__(self):
         self.player = Player(WORLD_WIDTH//2, WORLD_HEIGHT//2 + 300)
         self.quests = [q.copy() for q in QUESTS]
+        # Ensure all quests start as incomplete
+        for q in self.quests:
+            q['completed'] = False
         self.current_quest = 0
         self.bases = {}  # planet_name: {level, revenue, last_collected}
         self.revenue = 0
         self.menu_open = False
         self.tech_tree_open = False
         self.tech_upgrades = {
-            'Speed': {'level': 0, 'max': 5, 'cost': 150, 'desc': 'Increase ship speed'},
-            'Size': {'level': 0, 'max': 3, 'cost': 200, 'desc': 'Increase ship size'},
-            'Fuel Tank': {'level': 0, 'max': 3, 'cost': 120, 'desc': 'Increase max fuel'},
-            'Fuel Efficiency': {'level': 0, 'max': 4, 'cost': 180, 'desc': 'Reduce fuel use'},
-            'Max Health': {'level': 0, 'max': 3, 'cost': 180, 'desc': 'Increase max health'},
+            'Speed': {'level': 0, 'max': 5, 'materials': {'Iron': 2, 'Xenon': 1}, 'desc': 'Increase ship speed'},
+            'Size': {'level': 0, 'max': 3, 'materials': {'Crystal': 2, 'Water': 1}, 'desc': 'Increase ship size'},
+            'Fuel Tank': {'level': 0, 'max': 3, 'materials': {'Ice': 2, 'Sulfur': 1}, 'desc': 'Increase max fuel'},
+            'Fuel Efficiency': {'level': 0, 'max': 4, 'materials': {'Silicon': 2, 'Helium-3': 1}, 'desc': 'Reduce fuel use'},
+            'Max Health': {'level': 0, 'max': 3, 'materials': {'Organics': 2, 'Platinum': 1}, 'desc': 'Increase max health'},
         }
         self.base_on_planet = None
         self.story = [
@@ -163,5 +86,18 @@ class GameState:
     def complete_quest(self, quest_idx):
         if 0 <= quest_idx < len(self.quests):
             self.quests[quest_idx]['completed'] = True
+
+    def can_collect_resource(self, planet, material):
+        """
+        Returns True if the player can collect the resource for the current quest on the given planet.
+        """
+        if not (0 <= self.current_quest < len(self.quests)):
+            return False
+        quest = self.quests[self.current_quest]
+        return (
+            not quest['completed'] and
+            quest['planet'] == planet and
+            quest['material'] == material
+        )
 
 # Add more game logic as needed
