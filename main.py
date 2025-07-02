@@ -27,11 +27,36 @@ if SPACESHIP_IMG is None:
 # --- START MENU LOOP ---
 in_menu = True
 cutscene_shown = False
+controls_shown = False
+controls_text = [
+    "CONTROLS:",
+    "Steer Ship: Move your mouse",
+    "Accelerate: W",
+    "Reverse: S",
+    "Land: Approach a planet and stop",
+    "Take Off: SPACE (when landed)",
+    "Build Base: Click 'Build Base' button when landed",
+    "Open Tech Tree: Click tech tree button (top right)",
+    "Show Map: M",
+    "Open Menu: ESC",
+    "Interact/Collect: E (when near quest planet)",
+    "",
+    "Press ENTER to start"
+]
 while in_menu:
     if not cutscene_shown:
         ui.show_cutscene(screen, WIDTH, HEIGHT)
         cutscene_shown = True
-    ui.draw_start_menu(screen)
+    screen.fill(BLACK)
+    # Draw controls at the start (replace ui.draw_start_menu controls)
+    font = pygame.font.SysFont(None, 44)
+    title = font.render("SPACE EXPLORER", True, (0, 200, 255))
+    screen.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 220))
+    font = pygame.font.SysFont(None, 36)
+    for i, line in enumerate(controls_text):
+        surf = font.render(line, True, WHITE)
+        screen.blit(surf, (WIDTH//2 - surf.get_width()//2, HEIGHT//2 - 120 + i*32))
+    pygame.display.flip()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
@@ -60,6 +85,7 @@ player_fuel = 100
 player_max_fuel = 100
 player_fuel_efficiency = 1.0
 landed_planet = None
+landed_angle = None  # Angle at which the ship landed
 
 while running:
     clock.tick(60)
@@ -113,17 +139,17 @@ while running:
             move_x -= -player_speed * math.sin(rad) * 0.5 * dt
             move_y -= -player_speed * math.cos(rad) * 0.5 * dt
     else:
-        # While landed, lock ship to planet edge and allow rotation
+        # While landed, lock ship to planet edge at landing angle and allow rotation
         mouse_x, mouse_y = pygame.mouse.get_pos()
         dx = mouse_x - WIDTH // 2
         dy = mouse_y - HEIGHT // 2
         player_angle = math.degrees(math.atan2(-dx, -dy))
         px, py = landed_planet["pos"]
         pr = landed_planet["radius"]
-        angle_to_planet = math.atan2(player_y - py, player_x - px)
-        # Lock ship to edge of planet
-        player_x = px + (pr + player_size // 2) * math.cos(angle_to_planet)
-        player_y = py + (pr + player_size // 2) * math.sin(angle_to_planet)
+        # Stick to the angle where the ship landed
+        if landed_angle is not None:
+            player_x = px + (pr + player_size // 2) * math.cos(landed_angle)
+            player_y = py + (pr + player_size // 2) * math.sin(landed_angle)
 
     # Planet collision/landing
     next_x, next_y = player_x + move_x, player_y + move_y
@@ -133,14 +159,18 @@ while running:
         pr = planet["radius"]
         dist = math.hypot(next_x - px, next_y - py)
         if dist < pr + player_size // 2:
+            if landed_planet is None:
+                # Just landed: record the angle
+                landed_angle = math.atan2(next_y - py, next_x - px)
             landed = True
             landed_planet = planet
-            # Lock to edge handled above
     if not landed:
         player_x, player_y = next_x, next_y
         landed_planet = None
+        landed_angle = None
     if keys[pygame.K_SPACE] and landed_planet is not None:
         landed_planet = None  # Take off
+        landed_angle = None
 
     # --- QUEST LOGIC ---
     if game.current_quest < len(game.quests):
@@ -267,13 +297,20 @@ while running:
 
     # --- BUILD BASE BUTTON ---
     build_btn_rect = None
-    if landed_planet is not None:
-        # Only allow building a base if not already built
-        if not game.player.bases.get(landed_planet["name"], False):
-            build_btn_rect = ui.draw_base_buttons(screen, HEIGHT, None, False)[0]
-            if build_btn_rect and build_btn_rect.collidepoint(mouse) and click:
-                game.player.bases[landed_planet["name"]] = True
-                # Optionally: play sound or show feedback
+    if landed_planet is not None and not game.player.bases.get(landed_planet["name"], False):
+        # Draw the build base button at the bottom center of the screen
+        btn_width, btn_height = 220, 50
+        btn_x = WIDTH // 2 - btn_width // 2
+        btn_y = HEIGHT - btn_height - 40
+        build_btn_rect = pygame.Rect(btn_x, btn_y, btn_width, btn_height)
+        pygame.draw.rect(screen, (60, 180, 60), build_btn_rect, border_radius=12)
+        font = pygame.font.SysFont(None, 36)
+        btn_text = font.render("Build Base", True, WHITE)
+        screen.blit(btn_text, (btn_x + btn_width//2 - btn_text.get_width()//2, btn_y + btn_height//2 - btn_text.get_height()//2))
+        # Check for click
+        if build_btn_rect.collidepoint(mouse) and click:
+            game.player.bases[landed_planet["name"]] = True
+            # Optionally: play sound or show feedback
 
     # --- TECH TREE BUTTON ---
     tech_btn_rect = ui.draw_tech_tree_button(screen, WIDTH)

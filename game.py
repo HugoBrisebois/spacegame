@@ -16,6 +16,7 @@ class Player:
         self.angle = 0
         self.inventory = {}
         self.bases = {}  # Track bases built on planets
+        self.tech_tree = {}  # Track tech tree state (empty dict by default)
 
     def move(self, dx, dy):
         self.x += dx * PLAYER_SPEED
