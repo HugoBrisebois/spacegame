@@ -1,35 +1,25 @@
 # Space Explorer
 
-A 2D space exploration made with Python and Pygame.
+A space exploration game made with Pygame and python that makes you explore a fictional/nonfictional  solar system where you collect materials to complete quests that lead you all over this solar system
 
-## Features
+## Gameplay
 
-- Explore a solar system with multiple planets
-- Smooth spaceship controls (mouse steering, W/S for thrust)
-- Land on planets and gather resources
-- Complete quests and gather resources
-- Modern UI and menus
+- explore different planet
+- collect materials
+- complete quest to move through the solar system
+- follow a compass to the next quest
 
 ## Controls
 
-- **Steer Ship:** Move your mouse (ship always faces the mouse)
-- **Accelerate:** W
-- **Reverse:** S
-- **Land on Planet:** Approach a planet and stop (ship will stick to the edge)
-- **Take Off:** SPACE (when landed)
-- **Open Inventory:** I
-- **Show Map:** M
-- **Open Menu:** ESC
-- **Interact/Collect:** done automatically
-- **Scroll Inventory:** UP/DOWN or Mouse Wheel
-- **Resume Game:** ESC (from menu)
-- **Quit Game:** Quit button
+- steering: with the mouse
+- forwards: W
+- backwards: S
+- map: M
 
 ## Marker/Compass System
 
-- The compass at the top of the screen always points to the planet where your next quest will happen.
-- You no longer need to manually set a marker; the marker updates automatically as you progress through quests.
-- The marker panel shows the name and distance to your current quest planet.
+- The compass at the center top of the screen shows where the next quest will be and you distance to it.
+- the compass automatically sets the marker to the next quest
 
 ## How to Play
 
