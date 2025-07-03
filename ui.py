@@ -47,7 +47,7 @@ def draw_game_menu(screen, selected=None, show_controls=False):
     screen.blit(menu_panel, (menu_x, menu_y))
     # Draw controls panel to the right if needed
     if show_controls:
-        ctrl_width, ctrl_height = 340, 260
+        ctrl_width, ctrl_height = 340, 320
         ctrl_x = menu_x + menu_width + 20
         ctrl_y = menu_y + 20
         ctrl_panel = pygame.Surface((ctrl_width, ctrl_height), pygame.SRCALPHA)
@@ -56,13 +56,30 @@ def draw_game_menu(screen, selected=None, show_controls=False):
         font_ctrl = get_font(32)
         ctrl_title = font_ctrl.render("Controls", True, (255,255,200))
         ctrl_panel.blit(ctrl_title, (ctrl_width//2 - ctrl_title.get_width()//2, 20))
-        # Add more controls as needed
+        # Updated controls list
+        controls = [
+            "Steer Ship: Move your mouse",
+            "Accelerate: W",
+            "Reverse: S",
+            "Land: Approach a planet and stop",
+            "Take Off: SPACE (when landed)",
+            "Show Map: M",
+            "Open Menu: ESC",
+            "Open Inventory: I",
+            "Place/Remove Marker: C (near planet)",
+            "Follow Compass/Panel to Marker"
+        ]
+        font_small = get_font(22)
+        for i, line in enumerate(controls):
+            surf = font_small.render(line, True, (220,255,220))
+            ctrl_panel.blit(surf, (24, 64 + i*28))
         screen.blit(ctrl_panel, (ctrl_x, ctrl_y))
+    return btn_rects
 
 def draw_quest_bar(screen, current_quest, quests, WIDTH):
-    # Modern quest bar at top with rounded corners and subtle shadow
+    # Modern quest bar at bottom with rounded corners and subtle shadow
     bar_h = 54
-    bar_rect = pygame.Rect(18, 10, WIDTH-36, bar_h)
+    bar_rect = pygame.Rect(18, screen.get_height() - bar_h - 18, WIDTH-36, bar_h)
     shadow = pygame.Surface((bar_rect.width+8, bar_rect.height+8), pygame.SRCALPHA)
     pygame.draw.rect(shadow, (0,0,0,80), shadow.get_rect(), border_radius=16)
     screen.blit(shadow, (bar_rect.x-4, bar_rect.y-4))

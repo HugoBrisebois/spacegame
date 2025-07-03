@@ -18,11 +18,19 @@ A 2D space exploration and base-building game made with Python and Pygame.
 - **Reverse:** S
 - **Land on Planet:** Approach a planet and stop (ship will stick to the edge)
 - **Take Off:** SPACE (when landed)
-- **Build Base:** Click the "Build Base" button when landed (if available)
-- **Open Tech Tree:** Click the tech tree button (top right)
+- **Open Inventory:** I
 - **Show Map:** M
 - **Open Menu:** ESC
 - **Interact/Collect:** E (when near quest planet)
+- **Scroll Inventory:** UP/DOWN or Mouse Wheel
+- **Resume Game:** ESC (from menu)
+- **Quit Game:** Quit button
+
+## Marker/Compass System
+
+- The compass at the top of the screen always points to the planet where your next quest will happen.
+- You no longer need to manually set a marker; the marker updates automatically as you progress through quests.
+- The marker panel shows the name and distance to your current quest planet.
 
 ## How to Play
 
@@ -40,9 +48,6 @@ Install dependencies:
 
 ```sh
 pip install pygame
-
-````markdown
-```
 ```
 
 Run the game:

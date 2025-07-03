@@ -31,15 +31,17 @@ controls_shown = False
 controls_text = [
     "CONTROLS:",
     "Steer Ship: Move your mouse",
-    "Accelerate: W",
-    "Reverse: S",
+    "Forward & Backwards: W & s",
     "Land: Approach a planet and stop",
     "Take Off: SPACE (when landed)",
-    "Open Tech Tree: Click tech tree button (top right)",
+    "Open Inventory: I",
     "Show Map: M",
+    "Set/Remove Marker: C (near planet)",
     "Open Menu: ESC",
     "Interact/Collect: E (when near quest planet)",
-    "",
+    "Scroll Inventory: UP/DOWN or Mouse Wheel",
+    "Resume Game: ESC (from menu)",
+    "Quit Game: Quit button",
     "Press ENTER to start"
 ]
 while in_menu:
@@ -48,13 +50,13 @@ while in_menu:
         cutscene_shown = True
     screen.fill(BLACK)
     # Draw controls at the start (replace ui.draw_start_menu controls)
-    font = pygame.font.SysFont(None, 44)
+    font = pygame.font.SysFont(None, 28)  # Further reduced from 32 to 28
     title = font.render("SPACE EXPLORER", True, (0, 200, 255))
-    screen.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 220))
-    font = pygame.font.SysFont(None, 36)
+    screen.blit(title, (WIDTH//2 - title.get_width()//2, HEIGHT//2 - 160))  # Adjusted Y for smaller font
+    font = pygame.font.SysFont(None, 30)  # Reduce controls font size as well
     for i, line in enumerate(controls_text):
         surf = font.render(line, True, WHITE)
-        screen.blit(surf, (WIDTH//2 - surf.get_width()//2, HEIGHT//2 - 120 + i*32))
+        screen.blit(surf, (WIDTH//2 - surf.get_width()//2, HEIGHT//2 - 100 + i*28))
     pygame.display.flip()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -72,7 +74,6 @@ running = True
 selected_btn = None
 show_controls = False
 show_map = False
-show_tech_tree = False  # Track if tech tree modal is open
 show_inventory = False  # Track if inventory modal is open
 inventory_scroll = 0    # Track scroll offset for inventory
 # Player world position (centered on Earth at start)
@@ -103,11 +104,31 @@ in_hyperjump = False
 hyperjump_timer = 0
 HYPERJUMP_DURATION = 120  # frames (2 seconds at 60fps)
 
+# Compass/marker state
+marker_planet = None
+
+def update_marker_planet():
+    global marker_planet
+    # Set marker_planet to the planet for the current quest
+    if 0 <= game.current_quest < len(game.quests):
+        quest = game.quests[game.current_quest]
+        # Find the planet object for the quest planet
+        for planet in planets:
+            if planet["name"] == quest["planet"]:
+                marker_planet = planet
+                return
+    marker_planet = None
+
+end_game = False  # Track if the game has ended
+
 while running:
     clock.tick(60)
     # Update planet orbits
     update_planet_positions(PLANETS, 1)
     planets = get_planet_positions(PLANETS, SUN_POS)
+
+    # Always update marker to current quest planet
+    update_marker_planet()
 
     # --- EVENT HANDLING ---
     mouse = pygame.mouse.get_pos()
@@ -121,9 +142,7 @@ while running:
                 click = True
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                if show_tech_tree:
-                    show_tech_tree = False
-                elif show_inventory:
+                if show_inventory:
                     show_inventory = False
                 else:
                     game.menu_open = True
@@ -133,11 +152,24 @@ while running:
                 show_map = not show_map
             if event.key == pygame.K_i:
                 show_inventory = not show_inventory
+            # Remove or ignore the 'C' key marker logic
+            # if event.key == pygame.K_c:
+            #     pass  # Marker is now always set to quest planet
             if show_inventory:
                 if event.key == pygame.K_DOWN:
                     inventory_scroll += 1
                 if event.key == pygame.K_UP:
                     inventory_scroll -= 1
+            if event.key == pygame.K_e:
+                # Interact/Collect: Only if near quest planet
+                if not show_inventory and not show_map and not game.menu_open:
+                    for planet in planets:
+                        px, py = planet["pos"]
+                        pr = planet["radius"]
+                        dist = math.hypot(player_x - px, player_y - py)
+                        if dist < pr + 30:
+                            # Interact logic placeholder (can be expanded)
+                            pass
         if event.type == pygame.MOUSEBUTTONDOWN:
             if show_inventory:
                 if event.button == 5:  # Mouse wheel down
@@ -148,39 +180,6 @@ while running:
     inventory_items = list(game.player.inventory.items())
     max_scroll = max(0, len(inventory_items) - 6)
     inventory_scroll = max(0, min(inventory_scroll, max_scroll))
-    # --- TECH TREE MODAL ---
-    if show_tech_tree:
-        # Draw tech tree at bottom, get upgrade button rects
-        tech_btns = ui.draw_tech_tree(screen, WIDTH, HEIGHT, game.player.tech_tree, game.tech_upgrades)
-        pygame.display.flip()
-        # Handle tech tree interaction
-        tech_tree_running = True
-        while tech_tree_running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                    tech_tree_running = False
-                if event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        show_tech_tree = False
-                        tech_tree_running = False
-                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    mx, my = pygame.mouse.get_pos()
-                    for rect, upg in tech_btns:
-                        if rect.collidepoint(mx, my):
-                            upg_data = game.tech_upgrades[upg]
-                            if upg_data['level'] < upg_data['max']:
-                                upg_data['level'] += 1
-                                # Apply upgrade effect
-                                if upg == 'Speed':
-                                    player_speed += 1
-                                elif upg == 'Size':
-                                    player_size += 5
-                                # Redraw tree with updated state
-                                tech_btns = ui.draw_tech_tree(screen, WIDTH, HEIGHT, game.player.tech_tree, game.tech_upgrades)
-                                pygame.display.flip()
-        continue
-
     # --- INVENTORY MODAL ---
     if show_inventory:
         ui.draw_inventory(screen, game.player.inventory, WIDTH, HEIGHT, inventory_scroll)
@@ -242,35 +241,61 @@ while running:
     # --- QUEST LOGIC: Progress by system, hyperspeed to next when all done ---
     # Allow collection from all planets in PLANETS
     allowed_planets = set(p["name"] for p in PLANETS)
+    print(f"\n[DEBUG] --- QUEST LOGIC FRAME ---")
+    print(f"[DEBUG] current_system: {current_system}")
+    print(f"[DEBUG] allowed_planets: {allowed_planets}")
+    print(f"[DEBUG] Planets in current frame: {[ (p['name'], p['material']) for p in planets ]}")
     start_idx, end_idx = system_quest_ranges[current_system]
+    print(f"[DEBUG] system_quest_ranges: {system_quest_ranges}")
+    print(f"[DEBUG] Quests in current system:")
+    for idx in range(start_idx, end_idx):
+        q = game.quests[idx]
+        print(f"    [{idx}] {q['planet']} ({q['material']}): collected={q['collected']}, amount={q['amount']}, completed={q['completed']}")
     # Find the first incomplete quest in the current system
     active_quest_idx = None
     for i in range(start_idx, end_idx):
         if not game.quests[i]['completed']:
             active_quest_idx = i
             break
+    print(f"[DEBUG] active_quest_idx: {active_quest_idx}, game.current_quest: {game.current_quest}")
     if active_quest_idx is not None:
         quest = game.quests[active_quest_idx]
         found_planet = False
+        quest_planet_found = False
+        quest_material_found = False
+        for planet in planets:
+            if planet["name"] == quest["planet"]:
+                quest_planet_found = True
+            if planet["material"] == quest["material"]:
+                quest_material_found = True
+        if not quest_planet_found:
+            print(f"[WARNING] Quest planet '{quest['planet']}' not found in current planets list!")
+        if not quest_material_found:
+            print(f"[WARNING] Quest material '{quest['material']}' not found in current planets list!")
         for planet in planets:
             if planet["name"] not in allowed_planets:
+                print(f"[DEBUG] Skipping planet {planet['name']} (not in allowed_planets)")
                 continue
             px, py = planet["pos"]
             pr = planet["radius"]
             dist = math.hypot(player_x - px, player_y - py)
             # Increase collection radius to fit all planets (planet radius + 30)
+            print(f"[DEBUG] Checking planet: {planet['name']} (material: {planet['material']}) | Player at ({player_x:.1f}, {player_y:.1f}) | Distance: {dist:.1f} | Quest: {quest['planet']} ({quest['material']}) | Allowed: {planet['name'] in allowed_planets}")
             if dist < pr + 30:
                 found_planet = True
                 mat = planet["material"]
                 # Auto-collect: increment quest progress if this is the quest planet/material
                 if planet["name"] == quest["planet"] and mat == quest["material"] and not quest['completed']:
+                    print(f"[DEBUG] Collecting resource: {mat} from {planet['name']} for quest {quest['planet']} ({quest['material']})")
                     quest["collected"] += 1
                     if quest["collected"] >= quest["amount"]:
                         quest["completed"] = True
+                        print(f"[DEBUG] Quest completed for {quest['planet']} ({quest['material']})! Advancing quest...")
                         # Find next incomplete quest in this system
                         for j in range(start_idx, end_idx):
                             if not game.quests[j]['completed']:
                                 game.current_quest = j
+                                print(f"[DEBUG] Next quest set to {game.quests[j]['planet']} ({game.quests[j]['material']})")
                                 break
                         else:
                             # All quests in this system complete, trigger hyperspeed
@@ -278,12 +303,20 @@ while running:
                                 in_hyperjump = True
                                 hyperjump_timer = 0
                                 current_system += 1
-                                # Move to first quest of next system
                                 next_start, _ = system_quest_ranges[current_system]
                                 game.current_quest = next_start
                             else:
                                 # End of game, keep last quest
                                 game.current_quest = len(game.quests) - 1
+                                end_game = True  # Set end game flag
+                                print(f"[DEBUG] All systems complete. Game end.")
+                else:
+                    if planet["name"] != quest["planet"]:
+                        print(f"[DEBUG] Skipping planet {planet['name']} (not quest planet {quest['planet']})")
+                    if mat != quest["material"]:
+                        print(f"[DEBUG] Skipping material {mat} (not quest material {quest['material']})")
+                    if quest['completed']:
+                        print(f"[DEBUG] Quest already completed for {quest['planet']} ({quest['material']})")
                 # Show gather prompt (optional, for feedback)
                 font = pygame.font.SysFont(None, 36)
                 gather_msg = f"Auto-collecting {mat}..."
@@ -292,9 +325,11 @@ while running:
                 break
         if not found_planet:
             print(f"[DEBUG] No accessible planet found for collection in this frame. Player at ({player_x:.1f}, {player_y:.1f})")
+        if found_planet and not (planet["name"] == quest["planet"] and mat == quest["material"] and not quest['completed']):
+            print(f"[DEBUG] Collection did not progress for quest {quest['planet']} ({quest['material']}). Check above debug for reasons.")
     else:
         # All quests in this system complete, waiting for hyperspeed
-        pass
+        print(f"[DEBUG] All quests in this system complete. Waiting for hyperspeed.")
     # Draw only the current active quest in the quest bar
     ui.draw_quest_bar(screen, game.current_quest, game.quests, WIDTH)
     # --- IN-GAME MENU ---
@@ -302,6 +337,12 @@ while running:
         btn_rects = ui.draw_game_menu(screen, selected_btn, show_controls)
         if btn_rects is None:
             btn_rects = []
+        # Draw controls in menu if toggled
+        if show_controls:
+            font = pygame.font.SysFont(None, 32)
+            for i, line in enumerate(controls_text):
+                surf = font.render(line, True, WHITE)
+                screen.blit(surf, (WIDTH//2 - surf.get_width()//2, HEIGHT//2 - 120 + i*28))
         pygame.display.flip()
         menu_running = True
         while menu_running:
@@ -330,6 +371,12 @@ while running:
                         btn_rects = ui.draw_game_menu(screen, selected_btn, show_controls)
                         if btn_rects is None:
                             btn_rects = []
+                        # Draw controls in menu if toggled
+                        if show_controls:
+                            font = pygame.font.SysFont(None, 32)
+                            for i, line in enumerate(controls_text):
+                                surf = font.render(line, True, WHITE)
+                                screen.blit(surf, (WIDTH//2 - surf.get_width()//2, HEIGHT//2 - 120 + i*28))
                         pygame.display.flip()
                     elif selected_btn == 2:  # Quit
                         pygame.quit()
@@ -415,15 +462,67 @@ while running:
     screen.blit(rotated_img, rect.topleft)
     # Draw only the current active quest in the quest bar
     ui.draw_quest_bar(screen, game.current_quest, game.quests, WIDTH)
-    # --- TECH TREE BUTTON ---
-    tech_btn_rect = ui.draw_tech_tree_button(screen, WIDTH)
-    if tech_btn_rect and tech_btn_rect.collidepoint(mouse) and click:
-        show_tech_tree = True
+    # --- NEW MARKER GUI ---
+    # Draw marker/compass info panel at top right
+    panel_w, panel_h = 260, 80
+    panel_x, panel_y = WIDTH - panel_w - 24, 18
+    pygame.draw.rect(screen, (38,44,68), (panel_x, panel_y, panel_w, panel_h), border_radius=16)
+    pygame.draw.rect(screen, (120,180,255), (panel_x, panel_y, panel_w, panel_h), 3, border_radius=16)
+    font = pygame.font.SysFont(None, 26)
+    if marker_planet:
+        marker_txt = f"Marker: {marker_planet['name']}"
+        marker_surf = font.render(marker_txt, True, (255,255,0))
+        screen.blit(marker_surf, (panel_x + 18, panel_y + 16))
+        # Show distance to marker
+        dx = marker_planet["pos"][0] - player_x
+        dy = marker_planet["pos"][1] - player_y
+        dist = int(math.hypot(dx, dy))
+        dist_surf = font.render(f"Distance: {dist}", True, (200,220,255))
+        screen.blit(dist_surf, (panel_x + 18, panel_y + 44))
+    else:
+        marker_surf = font.render("No marker set.", True, (180,200,220))
+        screen.blit(marker_surf, (panel_x + 18, panel_y + 28))
+
     # Show landing message if landed
     if landed_planet is not None:
         font = pygame.font.SysFont(None, 40)
         msg = font.render("LANDED! Press SPACE to take off", True, (255,255,0))
         screen.blit(msg, (WIDTH//2 - msg.get_width()//2, HEIGHT//2 + 80))
+    # Draw compass at top center
+    compass_radius = 60
+    compass_x, compass_y = WIDTH//2, 60
+    pygame.draw.circle(screen, (60,60,80), (compass_x, compass_y), compass_radius, 0)
+    pygame.draw.circle(screen, (120,180,255), (compass_x, compass_y), compass_radius, 3)
+    # Draw N/E/S/W
+    font = pygame.font.SysFont(None, 22)
+    for ang, label in zip([0, math.pi/2, math.pi, 3*math.pi/2], ['N','E','S','W']):
+        lx = int(compass_x + compass_radius * 0.8 * math.sin(ang))
+        ly = int(compass_y - compass_radius * 0.8 * math.cos(ang))
+        surf = font.render(label, True, (200,200,255))
+        screen.blit(surf, (lx - surf.get_width()//2, ly - surf.get_height()//2))
+    # Draw marker arrow if marker_planet is set
+    if marker_planet:
+        dx = marker_planet["pos"][0] - player_x
+        dy = marker_planet["pos"][1] - player_y
+        # Calculate angle from player to marker in world
+        angle_to_marker = math.atan2(dx, -dy)
+        arrow_len = compass_radius * 0.7
+        ax = int(compass_x + arrow_len * math.sin(angle_to_marker))
+        ay = int(compass_y - arrow_len * math.cos(angle_to_marker))
+        pygame.draw.line(screen, (255,255,0), (compass_x, compass_y), (ax, ay), 5)
+        # Draw marker planet name
+        name_surf = font.render(marker_planet["name"], True, (255,255,0))
+        screen.blit(name_surf, (compass_x - name_surf.get_width()//2, compass_y + compass_radius + 8))
+        # Draw a small arrow at the tip for clarity
+        arrow_tip = (ax, ay)
+        perp_angle = angle_to_marker + math.pi/2
+        left = (int(ax - 10*math.sin(angle_to_marker) + 6*math.sin(perp_angle)), int(ay + 10*math.cos(angle_to_marker) + 6*math.cos(perp_angle)))
+        right = (int(ax - 10*math.sin(angle_to_marker) - 6*math.sin(perp_angle)), int(ay + 10*math.cos(angle_to_marker) - 6*math.cos(perp_angle)))
+        pygame.draw.polygon(screen, (255,255,0), [arrow_tip, left, right])
+        # Optionally, show distance to marker below compass
+        dist = int(math.hypot(dx, dy))
+        dist_surf = font.render(f"{dist} units", True, (255,255,0))
+        screen.blit(dist_surf, (compass_x - dist_surf.get_width()//2, compass_y + compass_radius + 28))
     pygame.display.flip()
 
 pygame.quit()

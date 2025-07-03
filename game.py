@@ -32,18 +32,19 @@ QUESTS = [
     {"desc": "Establish a mining base on Venus and collect 2 Sulfur for advanced fuel.", "planet": "Venus", "material": "Sulfur", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
     {"desc": "Terraform Earth by gathering 2 Water for the new colony's life support.", "planet": "Earth", "material": "Water", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
     {"desc": "Exploit Mars for 4 Silicon to build the first Martian city.", "planet": "Mars", "material": "Silicon", "amount": 4, "collected": 0, "completed": False, "reward": {"win": True}},
-    {"desc": "Harvest Ammonia from Jupiter for advanced life support.", "planet": "Jupiter", "material": "Ammonia", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
-    {"desc": "Mine Methane from Saturn for fuel research.", "planet": "Saturn", "material": "Methane", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
-    {"desc": "Collect Uranium from Uranus for power generation.", "planet": "Uranus", "material": "Uranium", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
-    {"desc": "Extract Deuterium from Neptune for fusion research.", "planet": "Neptune", "material": "Deuterium", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
+    {"desc": "Harvest hydrogen from Jupiter for advanced life support.", "planet": "Jupiter", "material": "Hydrogen", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
+    {"desc": "Mine Helium from Saturn for fuel research.", "planet": "Saturn", "material": "Helium", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
+    {"desc": "Collect Methane from Uranus for power generation.", "planet": "Uranus", "material": "Methane", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
+    {"desc": "Extract Ammonia from Neptune for fusion research.", "planet": "Neptune", "material": "Ammonia", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
+    {"desc": "Collect Ice from Pluto for deep space research.", "planet": "Pluto", "material": "Ice", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
     # Alpha Centauri
-    {"desc": "Mine Centauri Prime for 3 Crystal to power advanced tech.", "planet": "Centauri Prime", "material": "Crystal", "amount": 3, "collected": 0, "completed": False, "reward": {"size": 10}},
-    {"desc": "Harvest 2 Xenon from Centauri Secundus for propulsion research.", "planet": "Centauri Secundus", "material": "Xenon", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
-    {"desc": "Build a colony on Centauri Tertius and collect 2 Ice for life support.", "planet": "Centauri Tertius", "material": "Ice", "amount": 2, "collected": 0, "completed": False, "reward": {"fuel": 20}},
+    {"desc": "Mine Xenon from Centauri Prime for advanced tech.", "planet": "Centauri Prime", "material": "Xenon", "amount": 3, "collected": 0, "completed": False, "reward": {"size": 10}},
+    {"desc": "Harvest 2 Crystal from Centauri Secundus for propulsion research.", "planet": "Centauri Secundus", "material": "Crystal", "amount": 2, "collected": 0, "completed": False, "reward": {"speed": 1}},
+    {"desc": "Build a colony on Centauri Tertius and collect 2 Helium-3 for life support.", "planet": "Centauri Tertius", "material": "Helium-3", "amount": 2, "collected": 0, "completed": False, "reward": {"fuel": 20}},
     # Trappist-1
     {"desc": "Extract 3 Organics from Trappist-1e for food production.", "planet": "Trappist-1e", "material": "Organics", "amount": 3, "collected": 0, "completed": False, "reward": {"health": 20}},
-    {"desc": "Mine 2 Platinum from Trappist-1f for advanced electronics.", "planet": "Trappist-1f", "material": "Platinum", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
-    {"desc": "Harvest 2 Helium-3 from Trappist-1g for fusion power.", "planet": "Trappist-1g", "material": "Helium-3", "amount": 2, "collected": 0, "completed": False, "reward": {"win": True}}
+    {"desc": "Harvest 2 Ice from Trappist-1g for fusion power.", "planet": "Trappist-1g", "material": "Ice", "amount": 2, "collected": 0, "completed": False, "reward": {"win": True}},
+    {"desc": "Mine 2 Rare Metals from Trappist-1h for advanced electronics.", "planet": "Trappist-1h", "material": "Rare Metals", "amount": 2, "collected": 0, "completed": False, "reward": {"size": 10}},
 ]
 
 class GameState:
