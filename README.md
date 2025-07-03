@@ -1,14 +1,13 @@
 # Space Explorer
 
-A 2D space exploration and base-building game made with Python and Pygame.
+A 2D space exploration made with Python and Pygame.
 
 ## Features
 
 - Explore a solar system with multiple planets
 - Smooth spaceship controls (mouse steering, W/S for thrust)
-- Land on planets and build bases
+- Land on planets and gather resources
 - Complete quests and gather resources
-- Tech tree and upgrades
 - Modern UI and menus
 
 ## Controls
@@ -21,7 +20,7 @@ A 2D space exploration and base-building game made with Python and Pygame.
 - **Open Inventory:** I
 - **Show Map:** M
 - **Open Menu:** ESC
-- **Interact/Collect:** E (when near quest planet)
+- **Interact/Collect:** done automatically
 - **Scroll Inventory:** UP/DOWN or Mouse Wheel
 - **Resume Game:** ESC (from menu)
 - **Quit Game:** Quit button
@@ -36,8 +35,7 @@ A 2D space exploration and base-building game made with Python and Pygame.
 
 1. Use your mouse to steer the ship and W to accelerate.
 2. Approach a planet to land. The ship will stick to the planet's edge.
-3. When landed, you can build a base if you haven't already.
-4. Complete quests and explore the tech tree for upgrades.
+3. Complete quests and explore the tech tree for upgrades.
 
 ## Requirements
 
