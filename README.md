@@ -3,7 +3,8 @@
 A space exploration game made with Pygame and python that makes you explore a fictional/nonfictional  solar system where you collect materials to complete quests that lead you all over this solar system
 
 ## Gameplay
-
+- explore a fictional/nonfictional solar system
+- collect materials from planets
 - explore different planet
 - collect materials
 - complete quest to move through the solar system

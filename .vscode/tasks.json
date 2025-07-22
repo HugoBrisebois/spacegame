@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "shell",
+			"label": "Build Executable with PyInstaller",
+			"command": "pyinstaller --onefile --add-data \"spaceship.png;.\" --add-data \"assets.py;.\" --add-data \"planets.py;.\" --add-data \"ui.py;.\" --add-data \"game.py;.\" main.py",
+			"args": [],
+			"group": "build",
+			"problemMatcher": []
+		}
+	]
+}

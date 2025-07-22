@@ -26,13 +26,22 @@ PLAYER_SPEED = 5
 
 # Asset loading
 import os
+import sys
 import pygame
 
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except AttributeError:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 def load_spaceship_image(size):
-    img_path = os.path.join(os.path.dirname(__file__), "spaceship.png")
+    img_path = resource_path("spaceship.png")
     if not os.path.exists(img_path):
-        print(f"Could not find {img_path}. Make sure the image is in the project folder.")
+        print(f"Could not find {img_path}. Make sure the image is in the project folder or bundled with the executable.")
         return None
     try:
         img = pygame.image.load(img_path).convert_alpha()
